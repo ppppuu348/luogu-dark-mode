@@ -1747,6 +1747,29 @@
         'html body main.main .lfe-marked-wrap h5, html body main.main .lfe-marked-wrap h6 {',
         '    border-bottom-color: transparent !important;',
         '}',
+        '/* ★★ 同一条规则必须再补一份「全屏态」版本：',
+        '   实测编辑器全屏时站点会把 .casket.cs-main 重新挂到 .lfe-body 下',
+        '   （链：.casket.cs-main < .lfe-body < body），逃出 main.main 与 .l-card，',
+        '   于是上面这条 main.main 作用域的规则不再匹配 → 预览区的一级/二级标题',
+        '   又露站点的刺眼下划线（border-bottom）。这里是用户报的「全屏后 h1/h2 仍有下划线」。',
+        '   ★ 预览区容器实测为 .cs-viewer，正文容器为 .lfe-marked。',
+        '   只改 border-bottom-color，不动 border-width。 */',
+        'html body .cs-full-screen .lfe-marked h1,',
+        'html body .cs-full-screen .lfe-marked h2,',
+        'html body .cs-full-screen .lfe-marked h3,',
+        'html body .cs-full-screen .lfe-marked h4,',
+        'html body .cs-full-screen .lfe-marked h5,',
+        'html body .cs-full-screen .lfe-marked h6,',
+        'html body .cs-full-screen .lfe-marked-wrap h1,',
+        'html body .cs-full-screen .lfe-marked-wrap h2,',
+        'html body .cs-full-screen .lfe-marked-wrap h3,',
+        'html body .cs-full-screen .lfe-marked-wrap h4,',
+        'html body .cs-full-screen .lfe-marked-wrap h5,',
+        'html body .cs-full-screen .lfe-marked-wrap h6,',
+        'html body .cs-full-screen h1,',
+        'html body .cs-full-screen h2 {',
+        '    border-bottom-color: transparent !important;',
+        '}',
         '/* ★★ 连带必改：上面把正文底色压成深色后，正文文字仍是站点浅色主题的深字',
         '   rgb(64,64,64)，叠在 rgb(42,42,42) 上对比度只有 1.38:1 → 完全不可读。',
         '   根因同上：.lfe-marked-wrap 也在 .l-card 之外，',
@@ -1797,6 +1820,40 @@
         'html body .permission-change span[class*="lcolor"] {',
         '    background-color: transparent !important;',
         '    color: rgb(var(--lcolor--red-3)) !important;',
+        '}',
+        '/* =========================================================',
+        '   ★★ 题目页 IDE 布局（/problem/<id>#ide）：一套全新的 .panel-* 布局，',
+        '   实测几乎完全未深色化 ——',
+        '   · div.panel-layout.layout-horizontal.ide-container  bg rgb(255,255,255) 纯白',
+        '   · div.ide-toolbar（代码自测/C++11/O2/提交）        bg rgb(250,250,250)',
+        '   · div.panel-divider（含 .with-icon）               bg rgb(250,250,250)',
+        '   · textarea.ide-textarea.lfe-code（自测输入框）      bg rgb(255,255,255)',
+        '   · pre.lfe-code（样例代码块）                       bg rgb(250,250,250)',
+        '   · 题面正文 h1/h2/p/li/KaTeX 等 19 处               color rgb(38,38,38)/rgb(64,64,64)',
+        '   该路由下题面不在 .l-card 内，所以原有规则全都不匹配，故独立覆盖。',
+        '   ★ 正文白化规则必须排除 .cm-editor * —— 否则会把 CodeMirror 的',
+        '     语法高亮 token 一起刷白，破坏高亮。',
+        '   ========================================================= */',
+        'html body .panel-layout,',
+        'html body .ide-container,',
+        'html body .ide-toolbar,',
+        'html body .panel-divider {',
+        '    background-color: var(--ld-surface) !important;',
+        '    color: ' + PALETTE.fg + ' !important;',
+        '}',
+        'html body .panel-layout pre.lfe-code,',
+        'html body .panel-layout .lfe-code,',
+        'html body textarea.ide-textarea,',
+        'html body .ide-textarea {',
+        '    background-color: var(--ld-code-bg) !important;',
+        '    color: ' + PALETTE.fg + ' !important;',
+        '    border-top-color: var(--ld-border) !important;',
+        '    border-right-color: var(--ld-border) !important;',
+        '    border-bottom-color: var(--ld-border) !important;',
+        '    border-left-color: var(--ld-border) !important;',
+        '}',
+        'html body .panel-layout :not(.cm-editor *):not(a):not([style*="color"]):not(summary):not([class*="token"]):not([class*="lcolor"]):not(svg):not(path) {',
+        '    color: ' + PALETTE.fg + ' !important;',
         '}',
         '/* ★ 站点用内联色把正文/按钮写成 rgba(0,0,0,0.5) 这种「配白底的黑字」，',
         '   在深色卡上等于隐形。这里对「带内联 color 的正文元素」统一纠正为白色；',
@@ -2637,9 +2694,11 @@
 
     function needAlpha(color) {
         if (!color) return false;
+        /* ★ tagAlpha >= 1 表示「完全不修改」：直接放行，不做任何改写 */
+        if (tagAlpha >= 0.995) return false;
         var c = parseColor(color);
         if (!c) return false;
-        if (Math.abs(c.a - TAG_ALPHA) < 0.01) return false;          // 已经处理过
+        if (Math.abs(c.a - tagAlpha) < 0.01) return false;           // 已经处理过
         if (!ALPHA_NEUTRAL && isNeutral(c.r, c.g, c.b)) return false; // 中性色放行
         return true;
     }
@@ -2647,9 +2706,9 @@
     function patch(el) {
         if (el.getAttribute(ALPHA_ATTR) === '1') return;
         var s = el.style;
-        if (needAlpha(s.backgroundColor)) s.backgroundColor = alphaColor(s.backgroundColor, TAG_ALPHA);
-        if (needAlpha(s.borderColor))     s.borderColor     = alphaColor(s.borderColor, TAG_ALPHA);
-        if (needAlpha(s.color))           s.color           = alphaColor(s.color, TAG_ALPHA);
+        if (needAlpha(s.backgroundColor)) s.backgroundColor = alphaColor(s.backgroundColor, tagAlpha);
+        if (needAlpha(s.borderColor))     s.borderColor     = alphaColor(s.borderColor, tagAlpha);
+        if (needAlpha(s.color))           s.color           = alphaColor(s.color, tagAlpha);
         el.setAttribute(ALPHA_ATTR, '1');
     }
 
@@ -2662,6 +2721,13 @@
     function applyAlpha() {
         pending = false;
         syncRoute(false);
+
+        /* ★「tag 透明度」：由 Alt+L 面板的滑块写入 tagAlpha 驱动。
+           作用对象 = 所有带内联 background-color / border-color 的 span
+           （难度标签、题目标签、进度格等）以及 .progress-frame > .square。
+           ★ 默认 tagAlpha = 1（100%）→ needAlpha 直接返回 false，一个都不改写，
+             站点原始颜色与不透明度原样保留（符合「默认不修改」）。 */
+        if (tagAlpha >= 0.995) return;
 
         try {
             forEachEl(document, 'span[style*="background-color"], span[style*="border-color"]', function (el) {
@@ -2756,6 +2822,7 @@
     var KEY_ALPHA   = 'luoguDarkCard.alpha';
     var KEY_TC_ALPHA = 'luoguDarkCard.testcaseAlpha';
     var KEY_SATURATE = 'luoguDarkCard.saturate';
+    var KEY_TAG_ALPHA = 'luoguDarkCard.tagAlpha';
 
     function readValue(key, fallback) {
         try {
@@ -2786,6 +2853,13 @@
     saturate = (saturate === null || saturate === undefined || saturate === '') ? 1 : Number(saturate);
     if (isNaN(saturate)) saturate = 1;
     saturate = Math.min(1, Math.max(0.3, Math.round(saturate * 100) / 100));
+
+    // 难度 tag / 题目标签 / 进度格的「不透明度」：默认 1（100% = 完全不修改），
+    // 可下调到 0.1 —— 只影响这些带内联颜色的标签类元素，不动别的。
+    var tagAlpha = readValue(KEY_TAG_ALPHA, 1);
+    tagAlpha = (tagAlpha === null || tagAlpha === undefined || tagAlpha === '') ? 1 : Number(tagAlpha);
+    if (isNaN(tagAlpha)) tagAlpha = 1;
+    tagAlpha = Math.min(1, Math.max(0.1, Math.round(tagAlpha * 100) / 100));
 
     /* 开关的实现：直接禁用主样式表。
        这样做的好处是「关闭」等于样式根本不存在，不会留下半截残色。 */
@@ -2840,6 +2914,33 @@
         writeValue(KEY_SATURATE, saturate);
         var root = document.documentElement;
         if (root) root.style.setProperty('--ld-saturate', Math.round(saturate * 100) + '%');
+        if (updatePanel) updatePanel();
+    }
+
+    // ★ 难度 tag / 题目标签 / 进度格的不透明度。
+    //   1 = 100% 完全不修改（默认）；调低则把内联色的 alpha 统一改写为该值。
+    //   改写是「一次性写在 style 上」的，所以调整时需要清掉旧标记重新遍历。
+    function setTagAlpha(value) {
+        tagAlpha = Math.min(1, Math.max(0.1, Math.round(value * 100) / 100));
+        writeValue(KEY_TAG_ALPHA, tagAlpha);
+        // 清掉「已处理」标记，让新值能重新作用到全部标签
+        try {
+            var marked = document.querySelectorAll('[' + ALPHA_ATTR + ']');
+            for (var i = 0; i < marked.length; i++) {
+                marked[i].removeAttribute(ALPHA_ATTR);
+                // 把内联色还原成「去掉 alpha 的 rgb()」，以便按新值重新计算
+                var s = marked[i].style;
+                ['backgroundColor', 'borderColor', 'color'].forEach(function (prop) {
+                    var v = s[prop];
+                    if (!v) return;
+                    var m = String(v).match(/^rgba\(([^)]+)\)$/);
+                    if (!m) return;
+                    var p = m[1].split(',');
+                    if (p.length === 4) s[prop] = 'rgb(' + p[0] + ',' + p[1] + ',' + p[2] + ')';
+                });
+            }
+        } catch (e) { /* 忽略 */ }
+        schedule();
         if (updatePanel) updatePanel();
     }
 
@@ -2929,6 +3030,19 @@
             '  <button data-ld="satPreset80" style="flex:1;cursor:pointer;background:' + UI_BG_SOFT + ';color:' + UI_FG + ';border:1px solid ' + UI_BORDER + ';border-radius:6px;padding:4px 0;font-family:inherit;font-size:11px">80%</button>',
             '  <button data-ld="satPreset60" style="flex:1;cursor:pointer;background:' + UI_BG_SOFT + ';color:' + UI_FG + ';border:1px solid ' + UI_BORDER + ';border-radius:6px;padding:4px 0;font-family:inherit;font-size:11px">60%</button>',
             '</div>',
+            '<div style="border-top:1px solid ' + UI_BORDER + ';margin:0 0 12px"></div>',
+            '<div style="display:flex;justify-content:space-between;margin-bottom:6px;color:#c8c8c8">',
+            '  <span>难度 tag 透明度</span><span data-ld="tagValue" style="color:' + UI_FG + ';font-weight:600"></span>',
+            '</div>',
+            '<input data-ld="tagRange" type="range" min="0.1" max="1" step="0.01" style="width:100%;margin:0 0 4px;accent-color:#3498db;cursor:pointer">',
+            '<div style="display:flex;justify-content:space-between;color:#8a8a8a;font-size:11px;margin-bottom:8px">',
+            '  <span>更透 10%</span><span>100% 原样</span>',
+            '</div>',
+            '<div style="display:flex;gap:6px;margin-bottom:12px">',
+            '  <button data-ld="tagPreset100" style="flex:1;cursor:pointer;background:' + UI_BG_SOFT + ';color:' + UI_FG + ';border:1px solid ' + UI_BORDER + ';border-radius:6px;padding:4px 0;font-family:inherit;font-size:11px">100%</button>',
+            '  <button data-ld="tagPreset70" style="flex:1;cursor:pointer;background:' + UI_BG_SOFT + ';color:' + UI_FG + ';border:1px solid ' + UI_BORDER + ';border-radius:6px;padding:4px 0;font-family:inherit;font-size:11px">70%</button>',
+            '  <button data-ld="tagPreset55" style="flex:1;cursor:pointer;background:' + UI_BG_SOFT + ';color:' + UI_FG + ';border:1px solid ' + UI_BORDER + ';border-radius:6px;padding:4px 0;font-family:inherit;font-size:11px">55%</button>',
+            '</div>',
             '<div style="color:#c8c8c8;margin-bottom:6px">三级层次预览</div>',
             '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:12px">',
             '  <div style="text-align:center"><div data-ld="pv-card" style="height:38px;border-radius:6px;border:1px solid rgba(255,255,255,0.16)"></div><div style="font-size:11px;color:#9a9a9a;margin-top:4px">卡片</div></div>',
@@ -2986,6 +3100,10 @@
         var satValueEl = panel.querySelector('[data-ld="satValue"]');
         if (satRange && Math.abs(parseFloat(satRange.value) - saturate) > 0.0001) satRange.value = String(saturate);
         if (satValueEl) satValueEl.textContent = Math.round(saturate * 100) + '%';
+        var tagRange = panel.querySelector('[data-ld="tagRange"]');
+        var tagValueEl = panel.querySelector('[data-ld="tagValue"]');
+        if (tagRange && Math.abs(parseFloat(tagRange.value) - tagAlpha) > 0.0001) tagRange.value = String(tagAlpha);
+        if (tagValueEl) tagValueEl.textContent = Math.round(tagAlpha * 100) + '%';
         var note = panel.querySelector('[data-ld="note"]');
         if (note) {
             note.textContent = '卡片 alpha = ' + Math.round(alpha * 100) + '%'
@@ -3097,6 +3215,14 @@
         if (sp80) sp80.addEventListener('click', function () { setSaturate(0.8); });
         var sp60 = panel.querySelector('[data-ld="satPreset60"]');
         if (sp60) sp60.addEventListener('click', function () { setSaturate(0.6); });
+        var tagRange = panel.querySelector('[data-ld="tagRange"]');
+        if (tagRange) tagRange.addEventListener('input', function () { setTagAlpha(parseFloat(tagRange.value)); });
+        var tp100 = panel.querySelector('[data-ld="tagPreset100"]');
+        if (tp100) tp100.addEventListener('click', function () { setTagAlpha(1); });
+        var tp70 = panel.querySelector('[data-ld="tagPreset70"]');
+        if (tp70) tp70.addEventListener('click', function () { setTagAlpha(0.7); });
+        var tp55 = panel.querySelector('[data-ld="tagPreset55"]');
+        if (tp55) tp55.addEventListener('click', function () { setTagAlpha(0.55); });
         var tcp100 = panel.querySelector('[data-ld="tcPreset100"]');
         if (tcp100) tcp100.addEventListener('click', function () { setTcAlpha(1); });
         var tcp70 = panel.querySelector('[data-ld="tcPreset70"]');
@@ -3139,6 +3265,7 @@
     setAlpha(alpha);
     setTcAlpha(tcAlpha);
     setSaturate(saturate);
+    if (typeof setTagAlpha === 'function') { /* 初始值已由 tagAlpha 变量承载，无需重写 style */ }
     applyFooter();
 
     var menuIds = [];
