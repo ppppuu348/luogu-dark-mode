@@ -103,7 +103,7 @@ MIT
 ### 兼容
 
 - **浏览器**：Chrome / Edge / Firefox（需要 Tampermonkey）
-- **域名**：`www.luogu.com.cn`、`*.luogu.com.cn`、`*.luogu.com`、`*.luogu.me`
+- **域名**：`www.luogu.com.cn`、`*.luogu.com.cn`、`*.luogu.com`
 
 ### 支持页面
 
