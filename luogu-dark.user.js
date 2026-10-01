@@ -2,9 +2,9 @@
 // @name         洛谷深色模式 · Luogu Dark
 // @name:en      Luogu Dark Mode
 // @namespace    https://github.com/ppppuu348/luogu-dark-mode
-// @version      5.1.0
-// @description  给洛谷全部页面（题目/列表/比赛/排行榜/记录/个人中心/团队/讨论/题解/提交/图床/工单/主题商店/IDE）赋予深色卡片主题；统一色板 token、修复残留白块（下拉浮层、弹窗、编辑器、CodeMirror、表格、分页、上传框、Highcharts 悬浮框）、保留站点语义色（难度 / 等级 / VIP / Rated 等），并支持一键开关与卡片、测试点、难度 tag 透明度及全局淡度调节
-// @description:en  A dark theme for all Luogu pages (problems, lists, contests, rankings, records, profile, teams, discussions, solutions, submissions, image hosting, tickets, theme store, IDE). Token-based palette that fixes leftover white blocks (dropdowns, dialogs, editors, CodeMirror, tables, pagination, upload boxes, Highcharts tooltips) while preserving the site's semantic colors (difficulty / rating / VIP / Rated). Includes toggles for opacity and global saturation.
+// @version      5.3.0
+// @description  给洛谷全部页面（题目/列表/比赛/排行榜/记录/个人中心/团队/讨论/题解/提交/图床/工单/主题商店/IDE）赋予深色卡片主题；统一色板 token、修复残留白块（下拉浮层、弹窗、编辑器、CodeMirror、表格、分页、上传框、Highcharts 悬浮框、犇犇气泡尾巴）、保留站点语义色（难度 / 等级 / VIP / Rated 等），支持一键开关与卡片、测试点、难度 tag 透明度及全局淡度调节
+// @description:en  A dark theme for all Luogu pages (problems, lists, contests, rankings, records, profile, teams, discussions, solutions, submissions, image hosting, tickets, theme store, IDE). Token-based palette that fixes leftover white blocks (dropdowns, dialogs, editors, CodeMirror, tables, pagination, upload boxes, Highcharts tooltips, feed bubble tails) while preserving the site's semantic colors (difficulty / rating / VIP / Rated). Includes toggles for opacity and global saturation.
 // @author       ppppuu348
 // @license      MIT
 // @homepageURL  https://github.com/ppppuu348/luogu-dark-mode
@@ -55,7 +55,7 @@
     // ★ 默认取 0.85：P13501 实测 0.55 在白底宿主上会合成为 rgb(146,146,146) 中灰，
     //   全页会有 144 个元素对比度低于 2.2（标题 2.14、侧栏小字 1.19）。
     //   0.85 合成成 rgb(56,56,56)，实测可用；滑条可随时调回 0.55 或更低。
-    var CARD_ALPHA = 0.85;
+    var CARD_ALPHA = 0.55;
     var CARD_ALPHA_MIN = 0.55;       // 「原脚本观感档」，面板里给一个快捷按钮
 
     // ★ 设置面板
@@ -103,7 +103,7 @@
     var ALPHA_NEUTRAL = false;
 
     // ★ 底栏：文字统一白色；可整块隐藏（面板里切换，默认展示）
-    var HIDE_FOOTER = false;
+    var HIDE_FOOTER = true;
 
     // 多个脚本副本同时注入时，只让第一个生效
     if (window.__LUOGU_DARK_CARD__) return;
@@ -765,6 +765,44 @@
         '    border-right-color: var(--ld-border) !important;',
         '    border-bottom-color: var(--ld-border) !important;',
         '    border-left-color: var(--ld-border) !important;',
+        '}',
+        '/* =========================================================',
+        '   ★★ 首页「犇犇」动态流气泡（AmazeUI .am-comment 体系）。',
+        '   实测该处完全未深色化：',
+        '   · .am-comment-hd  bg rgb(248,248,248) 浅色',
+        '   · .am-comment-bd  bg rgb(255,255,255) 纯白',
+        '   · .am-comment-main 自身透明、border 用站点蓝 rgb(14,144,210)',
+        '   气泡尾巴是 AmazeUI 的两个 CSS 三角伪元素：',
+        '   · ::before  border-right: 8px solid rgb(14,144,210)   （外圈=蓝边）',
+        '   · ::after   border-right: 8px solid rgb(248,248,248)   （内芯=近白）',
+        '     ← 这就是用户看到的「白色角」！',
+        '   处理：把气泡压深，并让两个三角分别跟随「边框色」与「气泡底色」，',
+        '   否则三角颜色与气泡对不上，白角会残留。',
+        '   ★ 只改颜色，不动 border-width（三角的 8px 尺寸必须保留，改了形状就坏）。',
+        '   ========================================================= */',
+        'html body .am-comment,',
+        'html body .am-comment-main {',
+        '    background-color: transparent !important;',
+        '}',
+        'html body .am-comment-hd {',
+        '    background-color: var(--ld-panel) !important;',
+        '    color: ' + PALETTE.fg + ' !important;',
+        '    border-bottom-color: var(--ld-border) !important;',
+        '}',
+        'html body .am-comment-bd {',
+        '    background-color: var(--ld-surface) !important;',
+        '    color: ' + PALETTE.fg + ' !important;',
+        '}',
+        'html body .am-comment-hd :not(a):not([style*="color"]):not([class*="lcolor"]):not(svg):not(path),',
+        'html body .am-comment-bd :not(a):not([style*="color"]):not([class*="lcolor"]):not(svg):not(path) {',
+        '    color: ' + PALETTE.fg + ' !important;',
+        '}',
+        '/* 尾巴：外圈跟随气泡边框（站点蓝），内芯跟随气泡底色 */',
+        'html body .am-comment-main::before {',
+        '    border-right-color: var(--ld-primary) !important;',
+        '}',
+        'html body .am-comment-main::after {',
+        '    border-right-color: var(--ld-surface) !important;',
         '}',
         '/* =========================================================',
         '   首页（/）专项 —— 这是洛谷最老的 AmazeUI 布局（.am-* / .lg-*），',
@@ -3020,11 +3058,33 @@
     }
 
     var enabled = readValue(KEY_ENABLED, true);
+
+    /* ★★ 一次性迁移：让「新默认值」对老用户也生效。
+       默认值（卡片 55% / 测试点 70% / 难度 tag 70% / 隐藏底栏 开）只对
+       「从未存过值」的新用户有效；老用户的 localStorage / GM 存储里还是旧值
+       （85% / 100% / 100% / 关），所以必须显式把新默认写回去一次。
+       用版本号守卫，保证只迁移一次，之后用户的手动调整不会被覆盖。 */
+    var KEY_STORAGE_VER = 'luoguDarkCard.storageVersion';
+    var STORAGE_VER = 2;
+    try {
+        var _sv = Number(readValue(KEY_STORAGE_VER, 0)) || 0;
+        if (_sv < STORAGE_VER) {
+            /* ★ 这里必须用「字面量键名」而不是 KEY_* 变量：
+               实测 KEY_FOOTER 在本行之后（更下方）才声明，此处引用会得到
+               undefined，导致值被写进一个不存在的键、真正的键没被迁移。
+               字面量写法则与声明顺序无关，永远正确。 */
+            writeValue('luoguDarkCard.alpha', CARD_ALPHA);              // 卡片深度 → 55%
+            writeValue('luoguDarkCard.testcaseAlpha', 0.7);             // 测试点透明度 → 70%
+            writeValue('luoguDarkCard.tagAlpha', 0.7);                  // 难度 tag 透明度 → 70%
+            writeValue('luoguDarkCard.hideFooter', HIDE_FOOTER);        // 隐藏底栏 → 开
+            writeValue(KEY_STORAGE_VER, STORAGE_VER);
+        }
+    } catch (e) { /* 迁移失败不影响主流程 */ }
     var alpha   = Number(readValue(KEY_ALPHA, CARD_ALPHA)) || CARD_ALPHA;
-    // 测试点方块透明度：默认 1（完全不透明 = 站点原观感），范围复用 ALPHA_MIN..1
-    var tcAlpha = readValue(KEY_TC_ALPHA, 1);
-    tcAlpha = (tcAlpha === null || tcAlpha === undefined || tcAlpha === '') ? 1 : Number(tcAlpha);
-    if (isNaN(tcAlpha)) tcAlpha = 1;
+    // 测试点方块透明度：默认 0.7（70%，与面板默认一致）
+    var tcAlpha = readValue(KEY_TC_ALPHA, 0.7);
+    tcAlpha = (tcAlpha === null || tcAlpha === undefined || tcAlpha === '') ? 0.7 : Number(tcAlpha);
+    if (isNaN(tcAlpha)) tcAlpha = 0.7;
 
     // 全局「淡度」：1 = 100%（默认，完全不改观感）；允许 0.3 ~ 1
     var saturate = readValue(KEY_SATURATE, 1);
@@ -3032,11 +3092,11 @@
     if (isNaN(saturate)) saturate = 1;
     saturate = Math.min(1, Math.max(0.3, Math.round(saturate * 100) / 100));
 
-    // 难度 tag / 题目标签 / 进度格的「不透明度」：默认 1（100% = 完全不修改），
+    // 难度 tag / 题目标签 / 进度格的「不透明度」：默认 0.7（70%，与面板默认一致），
     // 可下调到 0.1 —— 只影响这些带内联颜色的标签类元素，不动别的。
-    var tagAlpha = readValue(KEY_TAG_ALPHA, 1);
-    tagAlpha = (tagAlpha === null || tagAlpha === undefined || tagAlpha === '') ? 1 : Number(tagAlpha);
-    if (isNaN(tagAlpha)) tagAlpha = 1;
+    var tagAlpha = readValue(KEY_TAG_ALPHA, 0.7);
+    tagAlpha = (tagAlpha === null || tagAlpha === undefined || tagAlpha === '') ? 0.7 : Number(tagAlpha);
+    if (isNaN(tagAlpha)) tagAlpha = 0.7;
     tagAlpha = Math.min(1, Math.max(0.1, Math.round(tagAlpha * 100) / 100));
 
     /* 开关的实现：直接禁用主样式表。
@@ -3221,13 +3281,6 @@
             '  <button data-ld="tagPreset70" style="flex:1;cursor:pointer;background:' + UI_BG_SOFT + ';color:' + UI_FG + ';border:1px solid ' + UI_BORDER + ';border-radius:6px;padding:4px 0;font-family:inherit;font-size:11px">70%</button>',
             '  <button data-ld="tagPreset55" style="flex:1;cursor:pointer;background:' + UI_BG_SOFT + ';color:' + UI_FG + ';border:1px solid ' + UI_BORDER + ';border-radius:6px;padding:4px 0;font-family:inherit;font-size:11px">55%</button>',
             '</div>',
-            '<div style="color:#c8c8c8;margin-bottom:6px">三级层次预览</div>',
-            '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:12px">',
-            '  <div style="text-align:center"><div data-ld="pv-card" style="height:38px;border-radius:6px;border:1px solid rgba(255,255,255,0.16)"></div><div style="font-size:11px;color:#9a9a9a;margin-top:4px">卡片</div></div>',
-            '  <div style="text-align:center"><div data-ld="pv-sample" style="height:38px;border-radius:6px;border:1px solid rgba(255,255,255,0.16)"></div><div style="font-size:11px;color:#9a9a9a;margin-top:4px">样例框</div></div>',
-            '  <div style="text-align:center"><div data-ld="pv-code" style="height:38px;border-radius:6px;border:1px solid rgba(255,255,255,0.16)"></div><div style="font-size:11px;color:#9a9a9a;margin-top:4px">代码框</div></div>',
-            '</div>',
-            '<div data-ld="note" style="color:#8a8a8a;font-size:11px;margin-bottom:12px"></div>',
             '<button data-ld="reset" style="cursor:pointer;width:100%;background:' + UI_BG_SOFT + ';color:' + UI_FG + ';border:1px solid ' + UI_BORDER + ';border-radius:6px;padding:6px 0;font-family:inherit">恢复默认 ' + Math.round(CARD_ALPHA * 100) + '%</button>',
             '<div style="color:#7a7a7a;font-size:11px;margin-top:10px">快捷键 ' + PANEL_KEY + ' 开 / 关</div>'
         ].join('');
@@ -3451,6 +3504,10 @@
     function registerMenu() {
         if (typeof GM_registerMenuCommand !== 'function') return;
         try {
+            /* ★ 精简菜单：只保留两个真正常用的入口。
+               原先还会注册 5 条「卡片深度 55/65/75/85/100%」+ 1 条「恢复默认」，
+               在油猴菜单里铺满一屏、非常杂乱（用户反馈）。
+               这些都已由 Alt+L 设置面板里的滑块覆盖，故全部移除。 */
             menuIds.push(GM_registerMenuCommand(
                 (enabled ? '✅' : '⬜') + ' 深色卡片：开 / 关',
                 function () {
@@ -3458,18 +3515,8 @@
                     refreshMenu();
                 }
             ));
-            [0.55, 0.65, 0.75, 0.85, 1.0].forEach(function (v) {
-                menuIds.push(GM_registerMenuCommand('🎚 卡片深度 ' + Math.round(v * 100) + '%', function () {
-                    setAlpha(v);
-                    refreshMenu();
-                }));
-            });
             menuIds.push(GM_registerMenuCommand('⚙️ 打开设置面板（' + PANEL_KEY + '）', function () {
                 openPanel();
-            }));
-            menuIds.push(GM_registerMenuCommand('↩︎ 恢复默认 ' + Math.round(CARD_ALPHA * 100) + '%', function () {
-                setAlpha(CARD_ALPHA);
-                refreshMenu();
             }));
         } catch (e) { /* ignore */ }
     }
@@ -3518,7 +3565,7 @@
             }
             if (_ic) _cmtErr++;
         }
-        console.info('[Luogu Dark] v5.1.0 已注入 · 开关=' + (enabled ? '开' : '关') +
+        console.info('[Luogu Dark] v5.3.0 已注入 · 开关=' + (enabled ? '开' : '关') +
             ' · 规则数=' + _rules + ' · 注释异常=' + _cmtErr +
             (_cmtErr ? ' ⚠️ CSS 注释不配平，部分规则会被解析器丢弃！' : ''));
         /* ★★ 被禁用时给出醒目告警 + 恢复方法：
