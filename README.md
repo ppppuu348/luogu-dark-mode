@@ -46,7 +46,7 @@ A custom dark mode user script for Luogu.
 
 1. Install the [Tampermonkey](https://www.tampermonkey.net/) browser extension.
 2. Install the script:  
-   [luogu-dark-mode.user.js](https://raw.githubusercontent.com/ppppuu348/luogu-dark-mode/main/luogu-dark-mode.user.js)
+   [luogu-dark.user.js](https://raw.githubusercontent.com/ppppuu348/luogu-dark-mode/main/luogu-dark.user.js)
 3. Open any Luogu page — it just works.
 
 ### Usage
@@ -58,7 +58,7 @@ A custom dark mode user script for Luogu.
 ### Compatibility
 
 - **Browsers**: Chrome / Edge / Firefox (requires Tampermonkey).
-- **Sites**: `www.luogu.com.cn`, `*.luogu.com.cn`, `*.luogu.com`, `*.luogu.me`
+- **Sites**: `www.luogu.com.cn`, `*.luogu.com.cn`, `*.luogu.com`
 
 ### Development Notes
 
@@ -91,7 +91,7 @@ MIT
 
 1. 先安装 [Tampermonkey](https://www.tampermonkey.net/) 浏览器扩展。
 2. 安装脚本：  
-   [luogu-dark-mode.user.js](https://raw.githubusercontent.com/ppppuu348/luogu-dark-mode/main/luogu-dark-mode.user.js)
+   [luogu-dark.user.js](https://raw.githubusercontent.com/ppppuu348/luogu-dark-mode/main/luogu-dark.user.js)
 3. 打开任意洛谷页面，即可自动生效。
 
 ### 使用
