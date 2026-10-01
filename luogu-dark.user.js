@@ -1,17 +1,9 @@
 // ==UserScript==
 // @name         洛谷深色模式 · Luogu Dark
-// @name:en      Luogu Dark Mode
-// @namespace    https://github.com/ppppuu348/luogu-dark-mode
-// @version      5.3.0
-// @description  给洛谷全部页面（题目/列表/比赛/排行榜/记录/个人中心/团队/讨论/题解/提交/图床/工单/主题商店/IDE）赋予深色卡片主题；统一色板 token、修复残留白块（下拉浮层、弹窗、编辑器、CodeMirror、表格、分页、上传框、Highcharts 悬浮框、犇犇气泡尾巴）、保留站点语义色（难度 / 等级 / VIP / Rated 等），支持一键开关与卡片、测试点、难度 tag 透明度及全局淡度调节
-// @description:en  A dark theme for all Luogu pages (problems, lists, contests, rankings, records, profile, teams, discussions, solutions, submissions, image hosting, tickets, theme store, IDE). Token-based palette that fixes leftover white blocks (dropdowns, dialogs, editors, CodeMirror, tables, pagination, upload boxes, Highcharts tooltips, feed bubble tails) while preserving the site's semantic colors (difficulty / rating / VIP / Rated). Includes toggles for opacity and global saturation.
-// @author       ppppuu348
-// @license      MIT
-// @homepageURL  https://github.com/ppppuu348/luogu-dark-mode
-// @supportURL   https://github.com/ppppuu348/luogu-dark-mode/issues
-// @updateURL    https://raw.githubusercontent.com/ppppuu348/luogu-dark-mode/main/luogu-dark.user.js
-// @downloadURL  https://raw.githubusercontent.com/ppppuu348/luogu-dark-mode/main/luogu-dark.user.js
-// @icon         https://www.luogu.com.cn/favicon.ico
+// @namespace    https://www.luogu.com.cn/
+// @version      5.4.3
+// @description  给洛谷全部页面（题目/列表/比赛/排行榜/记录/个人中心/团队/讨论/题解/提交）的卡片赋予 #383838 半透明深色效果；统一色板变量、修复残留白块（下拉浮层、弹窗、编辑器、分页、上传框）、适配 Prism 与 CodeMirror 代码配色，并支持一键开关与半透明度调节
+// @author       You
 // @match        https://www.luogu.com.cn/*
 // @match        https://*.luogu.com.cn/*
 // @match        https://*.luogu.com/*
@@ -21,7 +13,6 @@
 // @grant        GM_setValue
 // @grant        GM_getValue
 // @run-at       document-end
-// @noframes
 // ==/UserScript==
 
 /* =============================================================================
@@ -980,8 +971,9 @@
         '    background: var(--ld-surface) !important;',
         '}',
 
-        '/* ★ SweetAlert2 弹窗（复制成功、提交确认等） */',
-        '.swal2-popup {',
+        '.swal2-popup:not(:has(.swal2-image)),',
+        '.swal2-popup.swal2-toast,',
+        '.swal2-popup:has(.swal2-title):not([style*="transparent"]) {',
         '    background-color: var(--ld-surface-deep) !important;',
         '    color: var(--ld-fg) !important;',
         '    border: 1px solid rgba(255, 255, 255, 0.1) !important;',
@@ -3133,7 +3125,7 @@
             }
             if (_ic) _cmtErr++;
         }
-        console.info('[Luogu Dark] v5.3.0 已注入 · 开关=' + (enabled ? '开' : '关') +
+        console.info('[Luogu Dark] v5.4.3 已注入 · 开关=' + (enabled ? '开' : '关') +
             ' · 规则数=' + _rules + ' · 注释异常=' + _cmtErr +
             (_cmtErr ? ' ⚠️ CSS 注释不配平，部分规则会被解析器丢弃！' : ''));
         /* ★★ 被禁用时给出醒目告警 + 恢复方法：
