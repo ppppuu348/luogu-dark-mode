@@ -1,6 +1,5 @@
 # 洛谷深色模式 · Luogu Dark Mode
 
-[![Version](https://img.shields.io/badge/version-5.0-blue.svg)](https://github.com/ppppuu348/luogu-dark-mode)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](https://github.com/ppppuu348/luogu-dark-mode/blob/main/LICENSE)
 [![Platform](https://img.shields.io/badge/platform-Tampermonkey-orange.svg)](https://www.tampermonkey.net/)
 
