@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         洛谷深色模式 · Luogu Dark
 // @namespace    https://www.luogu.com.cn/
-// @version      5.4.3
+// @version      5.4.5
 // @description  给洛谷全部页面（题目/列表/比赛/排行榜/记录/个人中心/团队/讨论/题解/提交）的卡片赋予 #383838 半透明深色效果；统一色板变量、修复残留白块（下拉浮层、弹窗、编辑器、分页、上传框）、适配 Prism 与 CodeMirror 代码配色，并支持一键开关与半透明度调节
 // @author       You
 // @match        https://www.luogu.com.cn/*
@@ -821,13 +821,13 @@
         '    border: 1px solid var(--ld-border) !important;',
         '    color: var(--ld-fg) !important;',
         '}',
-        '.l-card .combo-wrapper .text, .l-card .combo-wrapper .text *,',
+        '.l-card .combo-wrapper .text, .l-card .combo-wrapper .text *:not([class*="lcolor"]):not([style*="color"]),',
         '.l-card .combo-wrapper input, .l-card .combo-wrapper input[type="text"],',
         '.l-card .combo-wrapper .text input,',
         '.l-card.burger .combo-wrapper .text {',
         '    background-color: transparent !important;',
         '    color: var(--ld-fg) !important;',
-        '    border: none !important;',
+        '    border-style: none !important;',
         '    box-shadow: none !important;',
         '}',
         '.l-card .combo-wrapper .placeholder, .l-card input.search-text::placeholder,',
@@ -871,21 +871,26 @@
         '.l-card input[placeholder*="搜索"]::placeholder,',
         '.l-card .refined-input.scoreboard-search input::placeholder { color: var(--ld-fg-muted) !important; }',
 
-        '/* 标签按钮 */',
-        '.l-card button.tag-button, .l-card .toggle-tag, .l-card .tag-select-area .toggle-tag {',
-        '    background: var(--ld-surface) !important;',
-        '    border: 1px solid var(--ld-border) !important;',
+        '.l-card button.tag-button:not(.selected), .l-card .toggle-tag:not(.selected),',
+        '.l-card .tag-select-area .toggle-tag:not(.selected) {',
+        '    background-color: var(--ld-surface) !important;',
+        '    background-image: none !important;',
+        '    border-color: var(--ld-border) !important;',
+        '    border-style: solid !important;',
+        '    border-width: 1px !important;',
         '    color: var(--ld-fg-soft) !important;',
         '}',
-        '.l-card button.tag-button:hover, .l-card .toggle-tag:hover {',
-        '    background: var(--ld-surface-hi) !important;',
+        '.l-card button.tag-button:not(.selected):hover, .l-card .toggle-tag:not(.selected):hover {',
+        '    background-color: var(--ld-surface-hi) !important;',
         '    border-color: var(--ld-border-hi) !important;',
         '    color: var(--ld-fg) !important;',
         '}',
+        '/* 已选中的语义色 chip：不给它换色，悬浮只整体压暗一档（保留色相） */',
+        '.l-card .toggle-tag.selected:hover { filter: brightness(0.9) !important; }',
         ':is(html) body .l-card .tag:not(:has(*)):not([style*="background-color"]):hover,',
         ':is(html) body .l-card [class*="tag"]:not(:has(*)):not([style*="background-color"]):hover,',
-        ':is(html) body .l-card button.tag-button:hover,',
-        ':is(html) body .l-card .toggle-tag:hover {',
+        ':is(html) body .l-card button.tag-button:not(.selected):hover,',
+        ':is(html) body .l-card .toggle-tag:not(.selected):hover {',
         '    background-color: var(--ld-panel) !important;',
         '    color: ' + PALETTE.fg + ' !important;',
         '}',
@@ -3125,7 +3130,7 @@
             }
             if (_ic) _cmtErr++;
         }
-        console.info('[Luogu Dark] v5.4.3 已注入 · 开关=' + (enabled ? '开' : '关') +
+        console.info('[Luogu Dark] v5.4.5 已注入 · 开关=' + (enabled ? '开' : '关') +
             ' · 规则数=' + _rules + ' · 注释异常=' + _cmtErr +
             (_cmtErr ? ' ⚠️ CSS 注释不配平，部分规则会被解析器丢弃！' : ''));
         /* ★★ 被禁用时给出醒目告警 + 恢复方法：
