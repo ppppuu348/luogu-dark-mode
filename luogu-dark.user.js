@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         洛谷深色模式 · Luogu Dark
 // @namespace    https://www.luogu.com.cn/
-// @version      5.0
+// @version      5.1
 // @description  给洛谷全部页面（题目/列表/比赛/排行榜/记录/个人中心/团队/讨论/题解/提交）的卡片赋予 #383838 半透明深色效果；统一色板变量、修复残留白块（下拉浮层、弹窗、编辑器、分页、上传框）、适配 Prism 与 CodeMirror 代码配色，并支持一键开关与半透明度调节
 // @author       You
 // @match        https://www.luogu.com.cn/*
@@ -715,6 +715,48 @@
         'html body .side-info {',
         '    border-left-color: var(--ld-hairline) !important;',
         '}',
+        '/* ★★ 独立页兜底（无应用外壳的页面）：',
+        '   例如「即将离开洛谷」外链安全拦截页 —— 它整页浅色、带居中白卡 + 输入框 + 蓝色按钮，',
+        '   且 body 内【没有 .lfe-body】（不是 SPA 外壳），所以所有 .l-card / .theme-page',
+        '   体系的规则都够不着。',
+        '   这里用 body:not(:has(.lfe-body)) 精确限定「只有这类独立页生效」，',
+        '   正常 SPA 页面（含 404 页 main.wrapped.lfe-body）全部不受影响。',
+        '   ★ 说明：无法在本机复现该拦截页，故这是按截图结构写的兜底；',
+        '     若仍有遗漏，需要该页的 URL / DOM 才能精准定位。 */',
+        'html body:not(:has(.lfe-body)) {',
+        '    background-color: var(--ld-surface) !important;',
+        '    color: ' + PALETTE.fg + ' !important;',
+        '}',
+        'html body:not(:has(.lfe-body)) .card,',
+        'html body:not(:has(.lfe-body)) [class*="dialog"],',
+        'html body:not(:has(.lfe-body)) [class*="modal"],',
+        'html body:not(:has(.lfe-body)) [class*="panel"] {',
+        '    background-color: var(--ld-card) !important;',
+        '    color: ' + PALETTE.fg + ' !important;',
+        '}',
+        'html body:not(:has(.lfe-body)) input,',
+        'html body:not(:has(.lfe-body)) textarea {',
+        '    background-color: var(--ld-surface) !important;',
+        '    color: ' + PALETTE.fg + ' !important;',
+        '    border-top-color: var(--ld-border) !important;',
+        '    border-right-color: var(--ld-border) !important;',
+        '    border-bottom-color: var(--ld-border) !important;',
+        '    border-left-color: var(--ld-border) !important;',
+        '}',
+        '/* ★★ 外链安全拦截页里那个「白框」的真身：<pre id="url">（用户提供的 DOM 片段）。',
+        '   它不是 input/textarea，而是 <pre>，所以上面那条规则覆盖不到 ——',
+        '   页面主体已经深色（深灰底/白字/蓝按钮），只有这个 pre 仍是纯白。',
+        '   这里直接按 id 精准命中（id="url" 是该页专有，不写 .lfe-body 限定，',
+        '   以防该页结构变体；作用范围极小、无误伤风险）。 */',
+        'html body pre#url,',
+        'html body #url {',
+        '    background-color: var(--ld-surface) !important;',
+        '    color: ' + PALETTE.fg + ' !important;',
+        '    border-top-color: var(--ld-border) !important;',
+        '    border-right-color: var(--ld-border) !important;',
+        '    border-bottom-color: var(--ld-border) !important;',
+        '    border-left-color: var(--ld-border) !important;',
+        '}',
         '/* =========================================================',
         '   首页（/）专项 —— 这是洛谷最老的 AmazeUI 布局（.am-* / .lg-*），',
         '   与其它页面的 .l-card 体系完全不同，几乎未深色化。实测：',
@@ -874,6 +916,7 @@
         '    border-left-color: var(--ld-hairline) !important;',
         '    color: var(--ld-fg-muted) !important;',
         '}',
+        '/* ★ hover 态（通用）：脚本里 `.l-card a.solid:hover / button.solid:hover`',
         '   → background-color: var(--ld-primary-dark)（蓝），会把「透明描边风格」的',
         '   实心按钮刷成蓝色。实测这类按钮都放在 .btn-actions 容器里',
         '   （文章编辑页「查看文章/删除文章」、云剪贴板页「编辑」等），',
@@ -3444,4 +3487,40 @@
         theme: function () { return hostTheme; },
         page: pageType
     };
+
+    /* ★ 自检日志：方便「脚本到底有没有跑」的 5 秒判定。
+       控制台里应看到一行 [Luogu Dark] …；看不到就说明脚本没注入。
+       同时报告：版本、开关状态、样式表规则数、注释配平（防止再出现
+       「注释缺了 /* 导致解析器丢弃后续规则」这类静默失效）。 */
+    try {
+        var _st = document.getElementById('luogu-dark-card-style');
+        var _rules = 0, _cmtErr = 0;
+        if (_st && _st.sheet) {
+            var _walk = function (list) { for (var i = 0; i < list.length; i++) { var r = list[i]; _rules++; if (r.cssRules && !r.selectorText) _walk(r.cssRules); } };
+            try { _walk(_st.sheet.cssRules); } catch (e) { /* ignore */ }
+            var _t = _st.textContent || '';
+            var _scan = 0, _ic = false, _pos = 0;
+            while (_pos < _t.length) {
+                var _two = _t.substr(_pos, 2);
+                if (_ic) { if (_two === '*/') { _ic = false; _pos += 2; continue; } _pos++; continue; }
+                if (_two === '/*') { _ic = true; _pos += 2; continue; }
+                if (_two === '*/') { _cmtErr++; _pos += 2; continue; }
+                _pos++;
+            }
+            if (_ic) _cmtErr++;
+        }
+        console.info('[Luogu Dark] v5.1 已注入 · 开关=' + (enabled ? '开' : '关') +
+            ' · 规则数=' + _rules + ' · 注释异常=' + _cmtErr +
+            (_cmtErr ? ' ⚠️ CSS 注释不配平，部分规则会被解析器丢弃！' : ''));
+        /* ★★ 被禁用时给出醒目告警 + 恢复方法：
+           脚本被禁用时【完全静默】（页面就是站点原样），极易被误判成「脚本失效」。
+           实测用户就踩了这个坑：控制台显示「开关=关」，但页面上毫无提示。 */
+        if (!enabled) {
+            console.warn('[Luogu Dark] ⚠️ 脚本当前处于【禁用】状态，所以页面完全没有深色化。\n' +
+                '   恢复方法（任选其一）：\n' +
+                '   1) 按 Alt+L 打开设置面板，勾选顶部的「启用」；\n' +
+                '   2) 在本控制台执行：LuoguDarkCard.setEnabled(true)\n' +
+                '   3) Tampermonkey 菜单里选「切换：启用 / 禁用」。');
+        }
+    } catch (e) { /* 自检失败不影响主流程 */ }
 })();
