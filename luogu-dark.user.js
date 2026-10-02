@@ -3,7 +3,7 @@
 // @namespace    https://www.luogu.com.cn/
 // @version      5.4.5
 // @description  给洛谷全部页面（题目/列表/比赛/排行榜/记录/个人中心/团队/讨论/题解/提交）的卡片赋予 #383838 半透明深色效果；统一色板变量、修复残留白块（下拉浮层、弹窗、编辑器、分页、上传框）、适配 Prism 与 CodeMirror 代码配色，并支持一键开关与半透明度调节
-// @author       You
+// @author       ppppuu348 & dsh
 // @match        https://www.luogu.com.cn/*
 // @match        https://*.luogu.com.cn/*
 // @match        https://*.luogu.com/*
