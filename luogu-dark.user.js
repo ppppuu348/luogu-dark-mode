@@ -1,9 +1,9 @@
 // ==UserScript==
 // @name         洛谷深色模式 · Luogu Dark
 // @namespace    https://www.luogu.com.cn/
-// @version      5.4.5
+// @version      5.4.7
 // @description  给洛谷全部页面（题目/列表/比赛/排行榜/记录/个人中心/团队/讨论/题解/提交）的卡片赋予 #383838 半透明深色效果；统一色板变量、修复残留白块（下拉浮层、弹窗、编辑器、分页、上传框）、适配 Prism 与 CodeMirror 代码配色，并支持一键开关与半透明度调节
-// @author       ppppuu348 & dsh
+// @author       You
 // @match        https://www.luogu.com.cn/*
 // @match        https://*.luogu.com.cn/*
 // @match        https://*.luogu.com/*
@@ -152,6 +152,9 @@
         editorGutter:'#858585',
         editorActive:'#2a2a2a',
         editorSelect:'#264f78',
+        // 选中高亮：在深色底上再压一层暗（「深色加深一点点」）
+        // 不设 color —— 保住代码语法高亮色，只换选区底色
+        selection:   'rgba(0, 0, 0, 0.4)',
 
         // 语义色
         success:     '#a5dc86',
@@ -800,6 +803,13 @@
         '    border-bottom-color: var(--ld-hairline) !important;',
         '    border-left-color: var(--ld-hairline) !important;',
         '    color: var(--ld-fg-muted) !important;',
+        '}',
+        'html body .problem-order {',
+        '    background-color: var(--ld-surface) !important;',
+        '    border-top-color: var(--ld-hairline) !important;',
+        '    border-right-color: var(--ld-hairline) !important;',
+        '    border-bottom-color: var(--ld-hairline) !important;',
+        '    border-left-color: var(--ld-hairline) !important;',
         '}',
         ':is(html) body .l-card .btn-actions a.solid:hover,',
         ':is(html) body .l-card .btn-actions button.solid:hover,',
@@ -2012,6 +2022,8 @@
         'html body .cm-activeLine { background-color: rgba(255, 255, 255, 0.05) !important; }',
         'html body .cm-cursor { border-left-color: var(--ld-fg) !important; }',
         'html body .cm-selectionBackground { background-color: var(--ld-editor-select) !important; }',
+        '/* 原生选区（pre/code 与全站）：只换底色、不动文字色，避免 UA 浅灰选区在深色代码上刺眼 */',
+        'html body ::selection, html body::selection { background-color: var(--ld-selection) !important; }',
         'html body .cm-panels, html body .cm-tooltip {',
         '    background: var(--ld-surface) !important;',
         '    color: ' + PALETTE.code + ' !important;',
@@ -3130,7 +3142,7 @@
             }
             if (_ic) _cmtErr++;
         }
-        console.info('[Luogu Dark] v5.4.5 已注入 · 开关=' + (enabled ? '开' : '关') +
+        console.info('[Luogu Dark] v5.4.7 已注入 · 开关=' + (enabled ? '开' : '关') +
             ' · 规则数=' + _rules + ' · 注释异常=' + _cmtErr +
             (_cmtErr ? ' ⚠️ CSS 注释不配平，部分规则会被解析器丢弃！' : ''));
         /* ★★ 被禁用时给出醒目告警 + 恢复方法：
