@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         洛谷深色模式 · Luogu Dark
 // @namespace    https://www.luogu.com.cn/
-// @version      5.4.7
+// @version      5.7.2
 // @description  给洛谷全部页面（题目/列表/比赛/排行榜/记录/个人中心/团队/讨论/题解/提交）的卡片赋予 #383838 半透明深色效果；统一色板变量、修复残留白块（下拉浮层、弹窗、编辑器、分页、上传框）、适配 Prism 与 CodeMirror 代码配色，并支持一键开关与半透明度调节
 // @author       You
 // @match        https://www.luogu.com.cn/*
@@ -141,17 +141,27 @@
         synFunction: '#61afef',   // 函数名 work / min / max
         synNumber:   '#d19a66',   // 数字 1003 / 0 / -1
         synString:   '#98c379',   // 字符串
-        synComment:  '#5c6370',   // 注释 // 更新两次
+        synComment:  '#9aa3b0',   // 注释 // 更新两次（★ 见下方对比度说明）
         synType:     '#e5c07b',   // 类型名 long long / size_t
         // One Dark Pro 的「变量 / 属性」红，以及运算符浅灰；Dark+ 表里没有这两项
         synVariable: '#e06c75',   // 变量 / 属性
         synOperator: '#abb2bf',   // 运算符
+
+        /* ★ 为什么 synComment 不是 One Dark 原值 #5c6370：
+           代码块底色 --ld-code-bg 是「卡片色 × 0.85」，会随卡片 alpha 变化。
+           卡片 alpha 默认调成 0.55（用户要求更透）后，代码底实际渲染约 #383838，
+           One Dark 的注释色 #5c6370 在这个底上对比度只有 1.94:1 —— 注释几乎看不见。
+           #9aa3b0 是同一灰蓝色相下提亮后的值：在 #383838 上约 4.4:1，
+           在更透（alpha 30%，底约 #4a4a4a）时约 3.5:1，在更实（alpha 100%）时约 6.4:1，
+           整个 alpha 可调区间都可读。 */
 
         // 编辑器结构色
         editorBg:    '#1e1e1e',
         editorGutter:'#858585',
         editorActive:'#2a2a2a',
         editorSelect:'#264f78',
+        // 代码字体：全站代码区（pre / code / CodeMirror / Ace / Monaco）统一用它
+        codeFont:    '"Consolas", "Monaco", "Courier New", monospace',
         // 选中高亮：在深色底上再压一层暗（「深色加深一点点」）
         // 不设 color —— 保住代码语法高亮色，只换选区底色
         selection:   'rgba(0, 0, 0, 0.4)',
@@ -263,10 +273,10 @@
         '.l-card,',
         '.l-card::before,',
         '.l-card::after {',
-        '    background: var(--ld-card) !important;',
+        '    background-color: var(--ld-card) !important;',
+        '    background-image: none !important;',
         '    backdrop-filter: none !important;',
         '    -webkit-backdrop-filter: none !important;',
-        '    border: 1px solid var(--ld-hairline) !important;',
         '    box-shadow: 0 4px 20px var(--ld-shadow) !important;',
         '}',
         '/* 卡片内的分区不再叠第二层底色，避免越套越黑 */',
@@ -366,7 +376,6 @@
         '.l-card .preview pre, .l-card .code-block pre {',
         '    background: var(--ld-layer-2) !important;',
         '    color: ' + PALETTE.code + ' !important;',
-        '    border: 1px solid var(--ld-hairline) !important;',
         '    border-radius: ' + RADIUS + ' !important;',
         '    padding: 1em !important;',
         '    overflow-x: auto !important;',
@@ -382,6 +391,19 @@
         '    color: ' + PALETTE.code + ' !important;',
         '    display: block !important;',
         "    font-family: 'Consolas', 'Monaco', 'Courier New', monospace !important;",
+        '}',
+        '/* ★ 全站代码字体统一为 Consolas。',
+        '   站点各页面的代码区字体并不一致（有的吃系统 monospace，有的已经是 Consolas），',
+        '   这里把 pre / code / kbd / samp 与三大编辑器一起压成同一个字体，避免同站内观感跳变。',
+        '   只改 font-family，不动字号（字号属布局，改了会撑破卡片）。 */',
+        'html body pre, html body code, html body kbd, html body samp,',
+        'html body .lfe-code, html body .markdown-body pre, html body .preview pre,',
+        'html body .cm-editor, html body .cm-content, html body .cm-line,',
+        'html body .cm-gutters, html body .cm-panels .cm-textfield,',
+        'html body .CodeMirror, html body .ace_editor, html body .monaco-editor,',
+        'html body .io-sample textarea, html body textarea.lfe-code,',
+        'html body [class*="code-editor"], html body [class*="codeEditor"] {',
+        '    font-family: var(--ld-code-font) !important;',
         '}',
         '/* ★ 只覆盖「样例区」代码框的底色：更透，与样例框(0.68)接近，不陷出第三层。',
         '   题解页 markdown 代码框 / 提交页 CodeMirror 不在此选择器内，保持 --ld-code-bg 不变。 */',
@@ -655,6 +677,32 @@
         '    border-bottom-color: var(--ld-border) !important;',
         '    border-left-color: var(--ld-border) !important;',
         '}',
+        'html body:has(.lauth-container) {',
+        '    background-color: var(--ld-surface) !important;',
+        '}',
+        'html body:has(.lauth-container) .main-wrapper,',
+        'html body:has(.lauth-container) .main-rect,',
+        'html body:has(.lauth-container) .l-card.main-container {',
+        '    background-color: var(--ld-card) !important;',
+        '}',
+        'html body:has(.lauth-container) input,',
+        'html body:has(.lauth-container) textarea {',
+        '    background-color: var(--ld-surface) !important;',
+        '    color: ' + PALETTE.fg + ' !important;',
+        '    border-top-color: var(--ld-border) !important;',
+        '    border-right-color: var(--ld-border) !important;',
+        '    border-bottom-color: var(--ld-border) !important;',
+        '    border-left-color: var(--ld-border) !important;',
+        '}',
+        'html body blockquote.compile-info,',
+        'html body .compile-info {',
+        '    background-color: var(--ld-surface) !important;',
+        '    color: ' + PALETTE.fg + ' !important;',
+        '    border-top-color: var(--ld-border) !important;',
+        '    border-right-color: var(--ld-border) !important;',
+        '    border-bottom-color: var(--ld-border) !important;',
+        '    border-left-color: var(--ld-border) !important;',
+        '}',
         'html body .am-comment,',
         'html body .am-comment-main {',
         '    background-color: transparent !important;',
@@ -811,6 +859,14 @@
         '    border-bottom-color: var(--ld-hairline) !important;',
         '    border-left-color: var(--ld-hairline) !important;',
         '}',
+        'html body .sample-group {',
+        '    border-top-color: var(--ld-hairline) !important;',
+        '    border-right-color: var(--ld-hairline) !important;',
+        '    border-bottom-color: var(--ld-hairline) !important;',
+        '    border-left-color: var(--ld-hairline) !important;',
+        '}',
+        'html body .sample-group h4 { color: var(--ld-fg) !important; }',
+        'html body .sample-group h4 .lfe-caption { color: var(--ld-fg-muted) !important; }',
         ':is(html) body .l-card .btn-actions a.solid:hover,',
         ':is(html) body .l-card .btn-actions button.solid:hover,',
         ':is(html) body .l-card .right a.solid.l-button:hover,',
@@ -1937,9 +1993,9 @@
         '   ★ 题解 / 文章代码高亮（Prism.js，VS Code Dark+ 配色）',
         '   ========================================================= */',
         'html body pre[class*="language-"] {',
-        '    background: var(--ld-layer-2) !important;',
+        '    background-color: var(--ld-layer-2) !important;',
+        '    background-image: none !important;',
         '    color: ' + PALETTE.code + ' !important;',
-        '    border: 1px solid rgba(255, 255, 255, 0.1) !important;',
         '    border-radius: ' + RADIUS + ' !important;',
         '    padding: 1em !important;',
         '    box-sizing: border-box !important;',
@@ -2025,11 +2081,35 @@
         '/* 原生选区（pre/code 与全站）：只换底色、不动文字色，避免 UA 浅灰选区在深色代码上刺眼 */',
         'html body ::selection, html body::selection { background-color: var(--ld-selection) !important; }',
         'html body .cm-panels, html body .cm-tooltip {',
-        '    background: var(--ld-surface) !important;',
+        '    background-color: var(--ld-surface) !important;',
+        '    background-image: none !important;',
         '    color: ' + PALETTE.code + ' !important;',
-        '    border-color: var(--ld-border) !important;',
+        '    border-top-color: var(--ld-border) !important;',
+        '    border-right-color: var(--ld-border) !important;',
+        '    border-bottom-color: var(--ld-border) !important;',
+        '    border-left-color: var(--ld-border) !important;',
         '}',
-        'html body .cm-tooltip-autocomplete ul li[aria-selected] { background: #094771 !important; color: var(--ld-fg) !important; }',
+        'html body .cm-tooltip-autocomplete ul li[aria-selected] {',
+        '    background-color: var(--ld-editor-select) !important;',
+        '    background-image: none !important;',
+        '    color: var(--ld-fg) !important;',
+        '}',
+        '/* ★ CodeMirror 查找/替换面板的按钮（Ctrl+F 弹出的「下一个 / 上一个 / 全部 / 替换 / 全部替换」）：',
+        '   CodeMirror 默认给 .cm-button 铺了浅色渐变',
+        '   background-image: linear-gradient(rgb(239,241,245), rgb(217,217,223))，',
+        '   而脚本此前只覆盖 background-color → 渐变照常绘制，按钮仍是浅灰。',
+        '   关键一行是 background-image: none（长写属性，不是 background 简写）。 */',
+        'html body .cm-button {',
+        '    background-image: none !important;',
+        '    background-color: var(--ld-surface-hi) !important;',
+        '    color: var(--ld-fg) !important;',
+        '    border-top-color: var(--ld-border) !important;',
+        '    border-right-color: var(--ld-border) !important;',
+        '    border-bottom-color: var(--ld-border) !important;',
+        '    border-left-color: var(--ld-border) !important;',
+        '}',
+        'html body .cm-button:hover { background-color: var(--ld-border) !important; }',
+        'html body .cm-button:active { background-color: var(--ld-surface-deep) !important; }',
 
         '/* 旧版 Ace / Monaco 编辑器兜底 */',
         'html body .ace_editor { background-color: var(--ld-editor-bg) !important; }',
@@ -3056,9 +3136,49 @@
         return ev.code ? ev.code === code : String(ev.key).toUpperCase() === key;
     }
 
+    /* ★ 快捷提交（Ctrl+Alt+↑）：只在「提交评测」按钮【可见且可点】时才动作。
+       实测（/problem/P2700#submit）按钮是 button.solid.lform-size-middle，文案「提交评测」；
+       站点若改文案，这里两种写法都能匹配。
+       用 offsetParent 做可见性判定 = 提交表单没打开时按钮是隐藏的 → 不会误提交。 */
+    /* 可见性判定用「有实际尺寸 + 未 display:none / visibility:hidden」，
+       而不是 offsetParent —— 提交表单在定位模态里，
+       offsetParent 对这类祖先下的元素判不准（实测元素已 display:none 时它仍返回非 null）。 */
+    function isElementVisible(el) {
+        var r = el.getBoundingClientRect();
+        if (!r.width || !r.height) return false;
+        var cs = getComputedStyle(el);
+        return cs.visibility !== 'hidden' && cs.display !== 'none';
+    }
+
+    function findSubmitButton() {
+        var list = document.querySelectorAll('button, input[type="submit"]');
+        for (var i = 0; i < list.length; i++) {
+            var b = list[i];
+            if (b.disabled || !isElementVisible(b)) continue;
+            var txt = String(b.textContent || b.value || '').replace(/\s+/g, '');
+            if (txt === '提交评测' || txt === '提交' || txt === 'Submit') return b;
+        }
+        return null;
+    }
+
+    function quickSubmit() {
+        var b = findSubmitButton();
+        if (!b) return false;
+        b.click();
+        return true;
+    }
+
     function bindShortcut() {
         window.addEventListener('keydown', function (ev) {
             try {
+                /* ★ Ctrl+Alt+↑ 快捷提交。放在 Alt+L 判断之前，
+                   因为下面那句 `if (!ev.altKey || ev.ctrlKey || ev.metaKey) return;`
+                   会把所有带 Ctrl 的组合统统挡掉。 */
+                if (ev.ctrlKey && ev.altKey && !ev.metaKey &&
+                    (ev.key === 'ArrowUp' || ev.code === 'ArrowUp')) {
+                    if (quickSubmit()) { ev.preventDefault(); ev.stopPropagation(); }
+                    return;
+                }
                 if (!ev.altKey || ev.ctrlKey || ev.metaKey) return;
                 if (ev.key === 'Escape' && panelOpen) { ev.preventDefault(); closePanel(); return; }
                 if (PANEL_KEY === 'Alt+L' && keyMatches(ev, 'L') && !ev.shiftKey) { ev.preventDefault(); togglePanel(); return; }
@@ -3142,7 +3262,7 @@
             }
             if (_ic) _cmtErr++;
         }
-        console.info('[Luogu Dark] v5.4.7 已注入 · 开关=' + (enabled ? '开' : '关') +
+        console.info('[Luogu Dark] v5.7.2 已注入 · 开关=' + (enabled ? '开' : '关') +
             ' · 规则数=' + _rules + ' · 注释异常=' + _cmtErr +
             (_cmtErr ? ' ⚠️ CSS 注释不配平，部分规则会被解析器丢弃！' : ''));
         /* ★★ 被禁用时给出醒目告警 + 恢复方法：
