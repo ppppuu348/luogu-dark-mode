@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         洛谷深色模式 · Luogu Dark
 // @namespace    https://www.luogu.com.cn/
-// @version      5.7.2
+// @version      5.9.3
 // @description  给洛谷全部页面（题目/列表/比赛/排行榜/记录/个人中心/团队/讨论/题解/提交）的卡片赋予 #383838 半透明深色效果；统一色板变量、修复残留白块（下拉浮层、弹窗、编辑器、分页、上传框）、适配 Prism 与 CodeMirror 代码配色，并支持一键开关与半透明度调节
 // @author       You
 // @match        https://www.luogu.com.cn/*
@@ -141,19 +141,11 @@
         synFunction: '#61afef',   // 函数名 work / min / max
         synNumber:   '#d19a66',   // 数字 1003 / 0 / -1
         synString:   '#98c379',   // 字符串
-        synComment:  '#9aa3b0',   // 注释 // 更新两次（★ 见下方对比度说明）
+        synComment:  '#5c6370',   // 注释
         synType:     '#e5c07b',   // 类型名 long long / size_t
         // One Dark Pro 的「变量 / 属性」红，以及运算符浅灰；Dark+ 表里没有这两项
         synVariable: '#e06c75',   // 变量 / 属性
         synOperator: '#abb2bf',   // 运算符
-
-        /* ★ 为什么 synComment 不是 One Dark 原值 #5c6370：
-           代码块底色 --ld-code-bg 是「卡片色 × 0.85」，会随卡片 alpha 变化。
-           卡片 alpha 默认调成 0.55（用户要求更透）后，代码底实际渲染约 #383838，
-           One Dark 的注释色 #5c6370 在这个底上对比度只有 1.94:1 —— 注释几乎看不见。
-           #9aa3b0 是同一灰蓝色相下提亮后的值：在 #383838 上约 4.4:1，
-           在更透（alpha 30%，底约 #4a4a4a）时约 3.5:1，在更实（alpha 100%）时约 6.4:1，
-           整个 alpha 可调区间都可读。 */
 
         // 编辑器结构色
         editorBg:    '#1e1e1e',
@@ -273,8 +265,8 @@
         '.l-card,',
         '.l-card::before,',
         '.l-card::after {',
-        '    background-color: var(--ld-card) !important;',
-        '    background-image: none !important;',
+        '    background: var(--ld-card) !important;',
+        '    border: 1px solid var(--ld-hairline) !important;',
         '    backdrop-filter: none !important;',
         '    -webkit-backdrop-filter: none !important;',
         '    box-shadow: 0 4px 20px var(--ld-shadow) !important;',
@@ -376,6 +368,7 @@
         '.l-card .preview pre, .l-card .code-block pre {',
         '    background: var(--ld-layer-2) !important;',
         '    color: ' + PALETTE.code + ' !important;',
+        '    border: 1px solid var(--ld-hairline) !important;',
         '    border-radius: ' + RADIUS + ' !important;',
         '    padding: 1em !important;',
         '    overflow-x: auto !important;',
@@ -404,6 +397,258 @@
         'html body .io-sample textarea, html body textarea.lfe-code,',
         'html body [class*="code-editor"], html body [class*="codeEditor"] {',
         '    font-family: var(--ld-code-font) !important;',
+        '}',
+        '/* ========== 文章编辑页「源码 / 显示」拖动分割条 ==========',
+        '   需求来自用户：站点编辑器两栏各占一半、中间那条「分割线」只是',
+        '   .cs-editor 的 border-right，站点本身没有拖拽能力。',
+        '   ★ 这是用户明确要求的功能，不是深色化的一部分：它确实会改两栏宽度，',
+        '     所以全部宽度覆盖都挂在容器类 .ld-split-on 之下 —— 站点切「全屏编辑 /',
+        '     全屏阅读 / 只看一栏」时脚本摘掉这个类，布局立刻原封不动交还站点。',
+        '   ★ 分割条本身完全透明（只有 col-resize 光标当线索），用户要求「不要有',
+        '     分隔条颜色，就是能拖动就可以了」。 */',
+        'html body .luogu-dark-splitter {',
+        '    flex-grow: 0 !important;',
+        '    flex-shrink: 0 !important;',
+        '    flex-basis: 6px !important;',
+        '    align-self: stretch !important;',
+        '    background-color: transparent !important;',
+        '    cursor: col-resize !important;',
+        '    position: relative !important;',
+        '    z-index: 5 !important;',
+        '    touch-action: none !important;',
+        '}',
+        'html body .cs-content.ld-split-on > *:first-child {',
+        '    flex-grow: 0 !important;',
+        '    flex-shrink: 0 !important;',
+        '    flex-basis: var(--ld-pane-left) !important;',
+        '    min-width: 0 !important;',
+        '    max-width: none !important;',
+        '}',
+        'html body .cs-content.ld-split-on > *:last-child {',
+        '    flex-grow: 0 !important;',
+        '    flex-shrink: 0 !important;',
+        '    flex-basis: calc(100% - var(--ld-pane-left) - 6px) !important;',
+        '    min-width: 0 !important;',
+        '    max-width: none !important;',
+        '}',
+        '/* 站点若用 display:none 收栏，别让它被我的 flex-basis 撑出来 */',
+        'html body .cs-content > [hidden],',
+        'html body .cs-content.ld-split-on > [hidden] {',
+        '    display: none !important;',
+        '}',
+        '/* ========== 比赛页（已结束）：题目表补充「标签 / 难度 / 通过率」列。',
+        '   这些列是我自己新建的节点（.ld-cc-*），站点原表结构不动。 ========== */',
+        'html body .ld-cc-cell {',
+        '    display: table-cell !important;',
+        '    vertical-align: middle !important;',
+        '    padding: 8px 6px !important;',
+        '    text-align: center !important;',
+        '}',
+        /* 表头：字号/行高/内边距都照站点 .header-container 的实测值（14px / 21px / 7px 6px 7px 0），
+           否则会继承行内的 16px，看起来比站点大一整圈；也不折行（切成「百分比」后通过率列变窄） */
+        'html body .header-container.ld-cc-cell {',
+        '    white-space: nowrap !important;',
+        '    font-size: 14px !important;',
+        '    line-height: 21px !important;',
+        '    padding: 7px 6px 7px 0 !important;',
+        '}',
+        /* 标签列整体（表头 + 单元格）都靠左：表头居中、胶囊靠左会显得「标签是右对齐」 */
+        'html body .header-container.ld-cc-cell.ld-cc-hd-tag {',
+        '    text-align: start !important;',
+        '}',
+        /* ★★ 列宽用百分比 + 上限，不用 min-width。
+           原因：min-width 是硬下限，三列一叠加就会把表格顶出卡片 —— 出现横向滚动条、
+           右边「通过率」被裁掉。百分比由表格自己分配，加起来 37%，永远不会溢出，
+           剩下的全给「题目」列 —— 于是标题在常见宽度下都能一行显示；
+           标签挤不下就在列内换行（换行优先级：标签 > 题目）。 */
+        'html body .header-container.ld-cc-cell.ld-cc-hd-tag {',
+        '    max-width: 220px !important;',
+        '}',
+        'html body .header-container.ld-cc-cell.ld-cc-hd-diff {',
+        '    max-width: 130px !important;',
+        '}',
+        'html body .header-container.ld-cc-cell.ld-cc-hd-rate {',
+        '    max-width: 96px !important;',
+        '}',
+        /* 站点的「题号 / 满分」两列会被新列挤到换行（满分 → 满/分），锁死不换行 */
+        'html body .list-wrap.table .pid,',
+        'html body .list-wrap.table .full-score {',
+        '    white-space: nowrap !important;',
+        '}',
+        'html body .list-wrap.table .pid {',
+        '    min-width: 48px !important;',
+        '}',
+        'html body .list-wrap.table .full-score {',
+        '    min-width: 48px !important;',
+        '}',
+        '/* ★ 题目名：优先不换行 —— 靠给标签列让出空间来保证；',
+        '   真挤不下时允许折行，绝不让表格溢出（出现横向滚动条） */',
+        'html body .list-wrap.table .title {',
+        '    white-space: normal !important;',
+        '    overflow-wrap: anywhere !important;',
+        '    word-break: break-word !important;',
+        '    min-width: 160px !important;',
+        '}',
+        '/* ★ 仅比赛页 #problems：侧栏挪到「答疑/公告」右侧（保持原尺寸），题目表拿满栏宽 */',
+        '/* JS 会把 .side 搬进 .main，这里用两列栅格摆位：题目表横跨两列，',
+        '   答疑/公告在左列，侧栏在右列 —— 于是侧栏正好贴着答疑栏的侧面 */',
+        'html[data-ld-cc-wide] .sidebar-container.reverse.contest-show > .main {',
+        '    display: grid !important;',
+        '    grid-template-columns: minmax(0, 1fr) 320px !important;',
+        '    align-items: start !important;',
+        '    gap: 0 12px !important;',
+        '    width: 100% !important;',
+        '}',
+        'html[data-ld-cc-wide] .sidebar-container.reverse.contest-show > .main > .table-wrap {',
+        '    grid-column: 1 / -1 !important;',
+        '}',
+        'html[data-ld-cc-wide] .sidebar-container.reverse.contest-show > .main > .l-card:not(.table-wrap) {',
+        '    grid-column: 1 !important;',
+        '}',
+        '/* 侧栏本身保持原来的窄宽度，不跟着拉满 */',
+        'html[data-ld-cc-wide] .sidebar-container.reverse.contest-show > .main > .side {',
+        '    grid-column: 2 !important;',
+        '    width: 320px !important;',
+        '    max-width: 100% !important;',
+        '}',
+        /* ★ 题解/文章页的目录（TOC）：原来太窄，标题被截成「Per…」。
+           放宽容器并允许标题折行，不再 ellipsis 截断 */
+        'html body .toc-wrapper {',
+        '    width: 320px !important;',
+        '    max-width: 100% !important;',
+        '}',
+        '/* 目录是绝对定位的右侧浮动栏，加宽后会压到正文上 —— 给带目录的正文让出同等的内边距 */',
+        'html body .article-content:has(.toc-wrapper) {',
+        '    padding-right: 150px !important;',
+        '    box-sizing: border-box !important;',
+        '}',
+        'html body .toc-wrapper .toc,',
+        'html body .toc-wrapper .toc ul {',
+        '    width: 100% !important;',
+        '    max-width: none !important;',
+        '}',
+        'html body .toc-wrapper .toc li {',
+        '    white-space: normal !important;',
+        '}',
+        'html body .toc-wrapper .toc li > span {',
+        '    display: block !important;',
+        '    white-space: normal !important;',
+        '    overflow: visible !important;',
+        '    text-overflow: clip !important;',
+        '    word-break: break-word !important;',
+        '}',
+        /* 标签列的表头是切换链接（照站点「显示算法 标签」那套；用 span 避免下划线） */
+        'html body .ld-cc-hd-tag .ld-cc-tg {',
+        '    display: inline-block !important;',
+        '    color: var(--ld-link) !important;',
+        '    text-decoration: none !important;',
+        '    border-bottom: 0 none !important;',
+        '    cursor: pointer !important;',
+        '}',
+        'html body .ld-cc-hd-tag .ld-cc-tg:hover,',
+        'html body .ld-cc-hd-tag .ld-cc-tg:focus,',
+        'html body .ld-cc-hd-tag .ld-cc-tg:active {',
+        '    text-decoration: none !important;',
+        '    border-bottom: 0 none !important;',
+        '    color: var(--ld-link-hover) !important;',
+        '}',
+        /* 加载态转圈（数据未到齐时占位） */
+        'html body .ld-cc-spin {',
+        '    display: inline-block !important;',
+        '    width: 14px !important;',
+        '    height: 14px !important;',
+        '    border-radius: 50% !important;',
+        '    border-style: solid !important;',
+        '    border-width: 2px !important;',
+        '    border-top-color: rgba(255, 255, 255, 0.85) !important;',
+        '    border-right-color: rgba(255, 255, 255, 0.18) !important;',
+        '    border-bottom-color: rgba(255, 255, 255, 0.18) !important;',
+        '    border-left-color: rgba(255, 255, 255, 0.18) !important;',
+        '    animation: ld-cc-rot 700ms linear infinite !important;',
+        '}',
+        '@keyframes ld-cc-rot { to { transform: rotate(360deg); } }',
+        'html body .ld-cc-cell.ld-cc-lbs {',
+        '    text-align: start !important;',
+        '    line-height: 26px !important;',
+        '}',
+        'html body .ld-cc-chip {',
+        '    display: inline-block !important;',
+        '    margin: 0 5px 0 0 !important;',
+        '    padding: 0 7px !important;',
+        '    font-size: 14px !important;',
+        '    line-height: 21px !important;',
+        '    border-radius: 2px !important;',
+        '    color: #ffffff !important;',
+        '    white-space: nowrap !important;',
+        '    background-color: var(--ld-cc-bg, rgba(255, 255, 255, 0.1)) !important;',
+        '    border-top-width: 1px !important;',
+        '    border-right-width: 1px !important;',
+        '    border-bottom-width: 1px !important;',
+        '    border-left-width: 1px !important;',
+        '    border-top-style: solid !important;',
+        '    border-right-style: solid !important;',
+        '    border-bottom-style: solid !important;',
+        '    border-left-style: solid !important;',
+        '    border-top-color: var(--ld-cc-bd, rgba(255, 255, 255, 0.18)) !important;',
+        '    border-right-color: var(--ld-cc-bd, rgba(255, 255, 255, 0.18)) !important;',
+        '    border-bottom-color: var(--ld-cc-bd, rgba(255, 255, 255, 0.18)) !important;',
+        '    border-left-color: var(--ld-cc-bd, rgba(255, 255, 255, 0.18)) !important;',
+        '}',
+        'html body .ld-cc-bar {',
+        '    display: inline-block !important;',
+        '    width: 64px !important;',
+        '    height: 6px !important;',
+        '    border-radius: 3px !important;',
+        '    background-color: var(--ld-panel) !important;',
+        '    overflow: hidden !important;',
+        '    vertical-align: middle !important;',
+        '}',
+        'html body .ld-cc-bar-in {',
+        '    display: block !important;',
+        '    height: 100% !important;',
+        '    background-color: var(--ld-primary) !important;',
+        '}',
+        'html body .ld-cc-cell.ld-cc-rate {',
+        '    white-space: nowrap !important;',
+        '}',
+        'html body .ld-cc-pct {',
+        '    display: inline-block !important;',
+        '    margin-left: 5px !important;',
+        '    font-size: 14px !important;',
+        '    line-height: 21px !important;',
+        '    color: var(--ld-fg-soft) !important;',
+        '    vertical-align: middle !important;',
+        '}',
+        'html body .ld-cc-muted { color: var(--ld-fg-faint) !important; }',
+        '/* ★ 通过率显示模式（进度条 / 百分比 / 两者）：写在 <html data-ld-rate> 上。',
+        '   比赛页补充列（.ld-cc-*）与题目列表页站点自带的 .progress 一并生效。 */',
+        'html body .ld-rt-pct {',
+        '    display: inline-block !important;',
+        '    margin-left: 6px !important;',
+        '    font-size: 14px !important;',
+        '    line-height: 21px !important;',
+        '    color: var(--ld-fg-soft) !important;',
+        '    vertical-align: middle !important;',
+        '    white-space: nowrap !important;',
+        '}',
+        /* ★ 只显示百分比时（pct 模式）：整格就剩这一个数字，白色 + 放大一点才看得清 */
+        'html[data-ld-rate="pct"] .ld-cc-pct,',
+        'html[data-ld-rate="pct"] .ld-rt-pct {',
+        '    font-size: 16px !important;',
+        '    line-height: 24px !important;',
+        '    color: var(--ld-fg) !important;',
+        '}',
+        'html[data-ld-rate="bar"] .ld-cc-pct,',
+        'html[data-ld-rate="bar"] .ld-rt-pct {',
+        '    display: none !important;',
+        '}',
+        'html[data-ld-rate="pct"] .ld-cc-bar,',
+        'html[data-ld-rate="pct"] .progress-frame {',
+        '    display: none !important;',
+        '}',
+        'html[data-ld-rate="pct"] .ld-cc-rate,',
+        'html[data-ld-rate="both"] .ld-cc-rate {',
+        '    white-space: nowrap !important;',
         '}',
         '/* ★ 只覆盖「样例区」代码框的底色：更透，与样例框(0.68)接近，不陷出第三层。',
         '   题解页 markdown 代码框 / 提交页 CodeMirror 不在此选择器内，保持 --ld-code-bg 不变。 */',
@@ -971,12 +1216,13 @@
         '.l-card .lfe-marked h1, .l-card .lfe-marked h2, .l-card .lfe-marked h3 { color: var(--ld-fg-heading) !important; }',
         '.l-card .lfe-marked blockquote {',
         '    /* ★ 卡片 alpha × 70%，半透明略深，不是死黑实色 */',
-        '    background: var(--ld-quote) !important;',
+        '    background-color: var(--ld-quote) !important;',
+        '    background-image: none !important;',
         '    border-left: 4px solid rgba(255, 255, 255, 0.2) !important;',
         '    color: var(--ld-fg-soft) !important;',
         '    padding: 0.5em 1em !important;',
         '    margin: 1em 0 !important;',
-        '}'
+        '}',
     ].join('\n'));
 
     /* ---------- 4.8 页内 tab / 菜单 ------------------------------------------- */
@@ -1993,9 +2239,9 @@
         '   ★ 题解 / 文章代码高亮（Prism.js，VS Code Dark+ 配色）',
         '   ========================================================= */',
         'html body pre[class*="language-"] {',
-        '    background-color: var(--ld-layer-2) !important;',
-        '    background-image: none !important;',
+        '    background: var(--ld-layer-2) !important;',
         '    color: ' + PALETTE.code + ' !important;',
+        '    border: 1px solid rgba(255, 255, 255, 0.1) !important;',
         '    border-radius: ' + RADIUS + ' !important;',
         '    padding: 1em !important;',
         '    box-sizing: border-box !important;',
@@ -2938,6 +3184,15 @@
             '  <button data-ld="tagPreset70" style="flex:1;cursor:pointer;background:' + UI_BG_SOFT + ';color:' + UI_FG + ';border:1px solid ' + UI_BORDER + ';border-radius:6px;padding:4px 0;font-family:inherit;font-size:11px">70%</button>',
             '  <button data-ld="tagPreset55" style="flex:1;cursor:pointer;background:' + UI_BG_SOFT + ';color:' + UI_FG + ';border:1px solid ' + UI_BORDER + ';border-radius:6px;padding:4px 0;font-family:inherit;font-size:11px">55%</button>',
             '</div>',
+            '<div style="border-top:1px solid ' + UI_BORDER + ';margin:0 0 12px"></div>',
+            '<div style="display:flex;justify-content:space-between;margin-bottom:6px;color:#c8c8c8">',
+            '  <span>通过率显示</span><span data-ld="rateValue" style="color:' + UI_FG + ';font-weight:600"></span>',
+            '</div>',
+            '<div style="display:flex;gap:6px;margin-bottom:12px">',
+            '  <button data-ld="rateBar" style="flex:1;cursor:pointer;background:' + UI_BG_SOFT + ';color:' + UI_FG + ';border:1px solid ' + UI_BORDER + ';border-radius:6px;padding:4px 0;font-family:inherit;font-size:11px">进度条</button>',
+            '  <button data-ld="ratePct" style="flex:1;cursor:pointer;background:' + UI_BG_SOFT + ';color:' + UI_FG + ';border:1px solid ' + UI_BORDER + ';border-radius:6px;padding:4px 0;font-family:inherit;font-size:11px">百分比</button>',
+            '  <button data-ld="rateBoth" style="flex:1;cursor:pointer;background:' + UI_BG_SOFT + ';color:' + UI_FG + ';border:1px solid ' + UI_BORDER + ';border-radius:6px;padding:4px 0;font-family:inherit;font-size:11px">两者</button>',
+            '</div>',
             '<button data-ld="reset" style="cursor:pointer;width:100%;background:' + UI_BG_SOFT + ';color:' + UI_FG + ';border:1px solid ' + UI_BORDER + ';border-radius:6px;padding:6px 0;font-family:inherit">恢复默认 ' + Math.round(CARD_ALPHA * 100) + '%</button>',
             '<div style="color:#7a7a7a;font-size:11px;margin-top:10px">快捷键 ' + PANEL_KEY + ' 开 / 关</div>'
         ].join('');
@@ -2971,6 +3226,73 @@
         if (updatePanel) updatePanel();
     }
 
+    /* 通过率显示模式：bar（进度条）/ pct（百分比）/ both（两者）
+       写 html 的 data-ld-rate，规则在常驻样式表里；比赛页补充列与题目列表页都吃这套 */
+    var KEY_RATE = 'luoguDarkCard.rateMode';
+    var rateMode = readValue(KEY_RATE, 'bar');
+    if (['bar', 'pct', 'both'].indexOf(rateMode) < 0) rateMode = 'bar';
+    var RATE_LABEL = { bar: '进度条', pct: '百分比', both: '两者' };
+
+    /* 题目列表页把百分比藏在 tooltip 里（.progress-frame > .square 的内联 width%），
+       这里按当前模式补一个可见的百分比文本 */
+    function rateTick() {
+        if (rateMode === 'bar') return;
+        var frames = document.querySelectorAll('.list-wrap .row .progress-frame');
+        for (var i = 0; i < frames.length; i++) {
+            var frame = frames[i];
+            var cell = frame.parentElement;
+            if (!cell || cell.querySelector('.ld-rt-pct')) continue;
+            var sq = frame.querySelector('.square');
+            if (!sq) continue;
+            var m = /width:\s*([\d.]+)%/.exec(sq.getAttribute('style') || '');
+            if (!m) continue;
+            var pct = Math.round(parseFloat(m[1]) * 10) / 10;
+            var span = document.createElement('span');
+            span.className = 'ld-rt-pct';
+            span.textContent = pct + '%';
+            cell.appendChild(span);
+        }
+    }
+
+    function applyRate() {
+        var root = document.documentElement;
+        if (root) root.setAttribute('data-ld-rate', rateMode);
+        rateTick();
+    }
+
+    /* ★ 仅在比赛页的「题目列表」子页（#problems）把侧栏挪到「答疑/公告」旁边：
+       题目表拿满整栏宽度、标题不再折行；侧栏仍是原来的窄宽度，只是位置从
+       上边挪到答疑栏右侧。切到「比赛说明 / 排行榜」时送回原位。 */
+    var ccSideHome = null;
+
+    function applyWideLayout() {
+        var root = document.documentElement;
+        if (!root) return;
+        var wide = (location.hash || '').replace(/^#/, '') === 'problems';
+        var wrap = document.querySelector('.sidebar-container.contest-show');
+        var side = wrap ? wrap.querySelector('.side') : null;
+        var main = wrap ? wrap.querySelector('.main') : null;
+        if (wide && wrap && side && main) {
+            if (side.parentElement === wrap) {
+                ccSideHome = { parent: wrap, next: side.nextSibling };
+                main.appendChild(side);
+            }
+            root.setAttribute('data-ld-cc-wide', '1');
+        } else {
+            if (ccSideHome && side && side.parentElement !== ccSideHome.parent) {
+                ccSideHome.parent.insertBefore(side, ccSideHome.next);
+            }
+            root.removeAttribute('data-ld-cc-wide');
+        }
+    }
+
+    function setRateMode(m) {
+        rateMode = (['bar', 'pct', 'both'].indexOf(m) >= 0) ? m : 'bar';
+        writeValue(KEY_RATE, rateMode);
+        applyRate();
+        if (updatePanel) updatePanel();
+    }
+
     function refreshPanel() {
         if (!panel) return;
         var range = panel.querySelector('[data-ld="range"]');
@@ -2992,6 +3314,8 @@
         var tagValueEl = panel.querySelector('[data-ld="tagValue"]');
         if (tagRange && Math.abs(parseFloat(tagRange.value) - tagAlpha) > 0.0001) tagRange.value = String(tagAlpha);
         if (tagValueEl) tagValueEl.textContent = Math.round(tagAlpha * 100) + '%';
+        var rateValueEl = panel.querySelector('[data-ld="rateValue"]');
+        if (rateValueEl) rateValueEl.textContent = RATE_LABEL[rateMode] || '进度条';
         var note = panel.querySelector('[data-ld="note"]');
         if (note) {
             note.textContent = '卡片 alpha = ' + Math.round(alpha * 100) + '%'
@@ -3119,6 +3443,12 @@
         if (tcp45) tcp45.addEventListener('click', function () { setTcAlpha(0.45); });
         var close = panel.querySelector('[data-ld="close"]');
         if (close) close.addEventListener('click', closePanel);
+        var rb = panel.querySelector('[data-ld="rateBar"]');
+        if (rb) rb.addEventListener('click', function () { setRateMode('bar'); });
+        var rp = panel.querySelector('[data-ld="ratePct"]');
+        if (rp) rp.addEventListener('click', function () { setRateMode('pct'); });
+        var rbo = panel.querySelector('[data-ld="rateBoth"]');
+        if (rbo) rbo.addEventListener('click', function () { setRateMode('both'); });
     }
 
     updatePanel = refreshPanel;
@@ -3189,12 +3519,709 @@
 
     bindShortcut();
 
+    /* ---------- 5.9 文章编辑页「源码 / 显示」拖动分割条 --------------------- */
+
+    /* 需求（用户）：编辑器两栏中间那条线要能拖。站点没做，这里补上。
+       ★ 与官方「全屏编辑 / 全屏阅读」共存是本段的核心设计：
+         绝对不要把宽度写成「无条件 !important 的全局规则」——那会压过站点切全屏时
+         用的样式，导致全屏失效。正确做法是：
+           1. 我的宽度覆盖**只在容器带 .ld-split-on 时才生效**；
+           2. 检测到站点进入全屏 / 单栏（见 isSiteWideMode）→ **摘掉 .ld-split-on**，
+              我所有影响布局的规则瞬间失效，布局完全交还站点；
+           3. 检测到回到双栏 → 再把 .ld-split-on 加回去，恢复用户拖过的比例。
+       ★ 实测洛谷的两种实现（2026-10 抓到的真实 DOM）：
+         · 右上角 fa-arrows-maximize（全屏）→ 祖先 div.casket.cs-main 加上 cs-full-screen，
+           容器和两栏宽度一起变大、两栏仍各占一半（所以「某栏≈100%」这个信号抓不到它）；
+         · 工具栏 fa-left-expand-regular（单栏）→ 另一栏直接从 DOM 移除，
+           留下的那栏类名由 cs-zone-half 变成 cs-zone-full。
+         因此判据（任一命中即让路）：Fullscreen API、祖先带 cs-full-screen、栏数不为 2、
+         某栏带 cs-zone-full、某栏被隐藏、某栏几乎占满容器、容器没有宽度。 */
+
+    var SPLITTER_CLASS = 'luogu-dark-splitter';
+    var SPLITTER_ON = 'ld-split-on';
+    var SPLITTER_STORE = 'luoguDarkCard.editorSplit';
+    var SPLITTER_STORE_OLD = 'luoguPaneSplitter.ratio';
+    var SPLITTER_MIN = 0.15;
+    var SPLITTER_MAX = 0.85;
+    var SPLITTER_MIN_PX = 40;
+    var SPLITTER_MIN_AVAIL = 200;
+    var SPLITTER_POLL = 500;
+
+    function splitterPanes(content) {
+        return Array.prototype.filter.call(content.children, function (el) {
+            return !el.classList.contains(SPLITTER_CLASS);
+        });
+    }
+
+    function splitterHidden(el) {
+        if (!el) return true;
+        var cs = getComputedStyle(el);
+        return cs.display === 'none' || cs.visibility === 'hidden';
+    }
+
+    function splitterPxW(el) { return el ? el.getBoundingClientRect().width : 0; }
+
+    function splitterAvail(content, sp) { return splitterPxW(content) - splitterPxW(sp); }
+
+    /* 站点是否处于「全屏编辑 / 全屏阅读 / 只看一栏」→ 必须完全让路 */
+    function isSiteWideMode(content) {
+        if (document.fullscreenElement) return true;
+        if (document.webkitFullscreenElement) return true;
+        if (content.closest && content.closest('.cs-full-screen')) return true;
+
+        var panes = splitterPanes(content);
+        if (panes.length !== 2) return true;
+
+        var i;
+        for (i = 0; i < panes.length; i++) {
+            if (panes[i].classList.contains('cs-zone-full')) return true;
+            if (splitterHidden(panes[i])) return true;
+        }
+        var total = splitterPxW(content);
+        if (total <= 0) return true;
+        for (i = 0; i < panes.length; i++) {
+            if (splitterPxW(panes[i]) >= total * 0.97) return true;
+        }
+        return false;
+    }
+
+    function applySplit(content, ratio) {
+        var sp = content.querySelector('.' + SPLITTER_CLASS);
+        var avail = splitterAvail(content, sp);
+        if (avail <= SPLITTER_MIN_PX * 2) return false;
+        var left = Math.round(avail * ratio);
+        left = Math.max(SPLITTER_MIN_PX, Math.min(avail - SPLITTER_MIN_PX, left));
+        content.style.setProperty('--ld-pane-left', left + 'px');
+        content.classList.add(SPLITTER_ON);
+        return true;
+    }
+
+    /* 撤销我的一切布局影响：摘类、删变量、把分割条也藏起来 */
+    function yieldToSite(content) {
+        content.classList.remove(SPLITTER_ON);
+        if (content.style.getPropertyValue('--ld-pane-left')) {
+            content.style.removeProperty('--ld-pane-left');
+        }
+        var sp = content.querySelector('.' + SPLITTER_CLASS);
+        if (sp && sp.style.display !== 'none') sp.style.display = 'none';
+    }
+
+    function currentSplit(content) {
+        var sp = content.querySelector('.' + SPLITTER_CLASS);
+        var avail = splitterAvail(content, sp);
+        if (avail <= 0) return 0.5;
+        var panes = splitterPanes(content);
+        if (panes.length < 2) return 0.5;
+        return splitterPxW(panes[0]) / avail;
+    }
+
+    function readSplitRatio() {
+        var v = readValue(SPLITTER_STORE, null);
+        if (v === null || v === undefined || v === '') v = readValue(SPLITTER_STORE_OLD, null);
+        if (v === null || v === undefined || v === '') return 0.5;
+        v = (typeof v === 'string') ? parseFloat(v) : Number(v);
+        if (!isFinite(v) || v <= 0 || v >= 1) return 0.5;
+        return v;
+    }
+
+    function mountSplitter(content) {
+        var panes = splitterPanes(content);
+        if (panes.length !== 2) return;
+        var sp = content.querySelector('.' + SPLITTER_CLASS);
+        if (!sp) {
+            sp = document.createElement('div');
+            sp.className = SPLITTER_CLASS;
+            sp.setAttribute('title', '拖动调整「源码 / 显示」宽度，双击复位');
+            content.insertBefore(sp, panes[1]);
+
+            sp.addEventListener('dblclick', function () {
+                applySplit(content, 0.5);
+                writeValue(SPLITTER_STORE, 0.5);
+            });
+
+            sp.addEventListener('pointerdown', function (ev) {
+                if (ev.button !== 0) return;
+                if (isSiteWideMode(content)) return;
+                var rect = content.getBoundingClientRect();
+                var avail = splitterAvail(content, sp);
+                if (avail <= SPLITTER_MIN_PX * 2) return;
+                ev.preventDefault();
+                try { sp.setPointerCapture(ev.pointerId); } catch (e) { /* ignore */ }
+                document.documentElement.style.cursor = 'col-resize';
+
+                function onMove(e2) {
+                    var r = (e2.clientX - rect.left) / avail;
+                    r = Math.max(SPLITTER_MIN, Math.min(SPLITTER_MAX, r));
+                    applySplit(content, r);
+                }
+                function onUp() {
+                    window.removeEventListener('pointermove', onMove, true);
+                    window.removeEventListener('pointerup', onUp, true);
+                    window.removeEventListener('pointercancel', onUp, true);
+                    document.documentElement.style.cursor = '';
+                    writeValue(SPLITTER_STORE, Number(currentSplit(content).toFixed(4)));
+                }
+                window.addEventListener('pointermove', onMove, true);
+                window.addEventListener('pointerup', onUp, true);
+                window.addEventListener('pointercancel', onUp, true);
+            });
+        }
+        /* 只在需要时改，避免每轮 tick 都写 style（会触发站点的 MutationObserver） */
+        if (sp.style.display !== '') sp.style.display = '';
+    }
+
+    function splitterTick() {
+        var content = document.querySelector('.cs-content');
+        if (!content) return;
+        var panes = splitterPanes(content);
+
+        /* ★ 站点切单栏时另一栏已被移除，容器里可能还留着我的分割条——若不摘掉，
+           我的 :last-child 规则就会套到分割条上、把唯一那栏挤成固定宽度。
+           所以这里必须「撤影响 + 移除分割条元素」再退出。 */
+        if (panes.length !== 2) {
+            yieldToSite(content);
+            var orphan = content.querySelector('.' + SPLITTER_CLASS);
+            if (orphan && orphan.parentNode) orphan.parentNode.removeChild(orphan);
+            return;
+        }
+
+        mountSplitter(content);
+
+        if (isSiteWideMode(content) || splitterPxW(content) < SPLITTER_MIN_AVAIL) {
+            yieldToSite(content);
+            return;
+        }
+
+        var want = readSplitRatio();
+        if (Math.abs(currentSplit(content) - want) > 0.01) applySplit(content, want);
+    }
+
+    /* ==================================================================
+     * 比赛页（已结束）→ 题目表补充「标签 / 难度 / 通过率」
+     *
+     * 数据来源（同源，带 x-lentille-request: content-only 才返回 JSON）：
+     *   /problem/list?page=1&keyword=<pid>  → { pid, difficulty, tags[],
+     *                                          totalSubmit, totalAccepted }
+     *   /problem/list（HTML）→ 里面每个 tag 链接是 /problem/list?tag=<id>，
+     *                          借它建立 id → 名称 字典
+     * 触发条件：lentille-context 里 contest.endTime 已过，且 contestProblems 非空
+     * 这些列是新建节点，站点原表格结构（.pid / .full-score / .title）不动
+     * ================================================================== */
+    var CC_ROOT = '.list-wrap.table';
+    var CC_POLL = 800;
+    // 洛谷官方难度配色（站点语义色，不是主题色，保留原样）
+    // ★ 标定方式：① 用站点自己的筛选器逐个对表（/?difficulty=N 的已选 chip 与行内文字）
+    //   ② 站点「难度」弹层里的官方档位名单（唯一权威来源），8 档依次是：
+    //      入门 / 普及- / 普及 / 普及+/提高- / 提高 / 提高+/省选- / 省选/NOI- / NOI/NOI+/CTS
+    //   —— 注意第 3 档就叫「普及」，没有「普及/提高-」这一档
+    var CC_DIFF = [
+        { n: '暂无评定', c: '#bfbfbf' },
+        { n: '入门', c: '#fe4c61' },
+        { n: '普及-', c: '#f39c11' },
+        { n: '普及', c: '#ffc116' },
+        { n: '普及+/提高-', c: '#52c41a' },
+        { n: '提高', c: '#13c2c2' },
+        { n: '提高+/省选-', c: '#3498db' },
+        { n: '省选/NOI-', c: '#9d3dcf' },
+        { n: 'NOI/NOI+/CTS', c: '#0e1d69' }
+    ];
+    var ccState = { key: null, busy: false, done: false, fetchedAt: 0, fetchedKey: null, paintedSig: null };
+    window.__ccState = ccState;   /* 调试用：看缓存/请求状态 */
+    // ★ 标签按类别上色（对齐站点标准样式）：来源=青、特殊题目=橙、其余（算法/时间/区域）=蓝
+    //   名单取自站点「选择标签」弹窗里 来源/特殊题目 两个分组的真实条目
+    var CC_TAG_SRC = ('NOI 系列赛事,各省省选,集训队互测,NOI,NOIP 普及组,NOIP 提高组,APIO,CTT（清华集训/北大集训）,CSP-S 提高级,CSP-J 入门级,NOI Online,WC,CTSC/CTS,经典套题,福建省历届夏令营,NOI 导刊,网络流与线性规划 24 题,Ynoi,模板题,国际知名赛事,USACO,POI（波兰）,IOI,CCO（加拿大）,CCC（加拿大）,CEOI（中欧）,eJOI（欧洲）,COCI（克罗地亚）,BalticOI（波罗的海）,JOI（日本）,AGM,PA（波兰）,ROI（俄罗斯）,EGOI（欧洲/女生）,NOISG（新加坡）,NordicOI（北欧）,BalkanOI（巴尔干半岛）,KOI（韩国）,RMI（罗马尼亚）,COI（克罗地亚）,ROIR（俄罗斯）,INOI（伊朗）,UOI（乌克兰）,JOISC/JOIST（日本）,COTS（克罗地亚）,Google Code Jam,Moscow Olympiad,PO（瑞典）,PAIO,MCC/MCO（马来西亚）,KTSC（韩国）,IATI（保加利亚/东欧）,Google Kick Start,洛谷比赛,洛谷原创,洛谷月赛,语言月赛,入门赛,大学竞赛,ICPC,蓝桥杯国赛,蓝桥杯省赛,省赛/邀请赛,传智杯,THUPC,高校校赛,CSPro,CCPC,其他竞赛,GESP,THUSC,THUWC,Code+,梦熊比赛,科创活动,CSP-X 小学组,信息与未来,BCSP-X,小学活动,初中活动,科大国创杯,蓝桥杯青少年组').split(',');
+    var CC_TAG_SP = ('交互题,提交答案,Special Judge,O2优化,通信题').split(',');
+    // ★「区域」标签（站点「选择标签」弹窗里 区域 那一组，共 52 个）
+    //   站点给它们的底色是绿色 rgb(83,196,26)，不是算法的深蓝 —— 早期版本没这一组，
+    //   「南京」这类地名被当成了算法标签，颜色就错了
+    var CC_TAG_REGION = ('重庆,四川,河南,浙江,上海,福建,江苏,安徽,湖南,北京,河北,广东,山东,吉林,山西,江西,贵州,广西,陕西,辽宁,云南,天津,湖北,黑龙江,海南,甘肃,青海,台湾,内蒙古,西藏,宁夏,新疆,香港,澳门,济南,南京,青岛,EC Final,杭州,昆明,西安,哈尔滨,成都,NERC/NEERC,SEERC,CERC,NWRRC,WF,NAC,首尔,横浜,SWERC,雅加达').split(',');
+    var CC_C_SRC = '#13c2c2', CC_C_SP = '#f39c11', CC_C_ALG = '#2949b4', CC_C_TIME = '#3498db', CC_C_REGION = '#53c41a';
+    function ccTagColor(name) {
+        if (/^\d{4}$/.test(name)) return CC_C_TIME;   // 时间（年份）标签是浅一档的蓝，不能跟算法混
+        if (CC_TAG_SRC.indexOf(name) >= 0) return CC_C_SRC;
+        if (CC_TAG_SP.indexOf(name) >= 0) return CC_C_SP;
+        if (CC_TAG_REGION.indexOf(name) >= 0) return CC_C_REGION;
+        return CC_C_ALG;
+    }
+
+    /* 标签视图切换：照站点题目列表表头那套（「显示算法 标签」↔「显示来源 标签」）。
+       站点默认显示「来源 + 时间」那组，表头写「显示算法标签」＝点一下切去看算法。 */
+    var CC_TAGMODE_KEY = 'luoguDarkCard.ccTagMode';
+    var ccTagMode = readValue(CC_TAGMODE_KEY, 'src');
+    if (['algo', 'src'].indexOf(ccTagMode) < 0) ccTagMode = 'src';
+
+    function ccIsSrcTag(name) {
+        if (CC_TAG_SRC.indexOf(name) >= 0) return true;
+        if (CC_TAG_REGION.indexOf(name) >= 0) return true;  // 区域（南京/江苏/EC Final…）跟来源同一组展示
+        if (/^\d{4}$/.test(name)) return true;   // 时间标签就是年份
+        return false;
+    }
+
+    function ccPickTags(names) {
+        var out = [];
+        for (var i = 0; i < names.length; i++) {
+            /* ★ 特殊题目这一组（交互题 / 提交答案 / Special Judge / O2优化 / 通信题）
+               两个视图都不显示 —— 用户明确要求，它们不属于算法也不属于来源 */
+            if (CC_TAG_SP.indexOf(names[i]) >= 0) continue;
+            var isSrc = ccIsSrcTag(names[i]);
+            if (ccTagMode === 'src' ? isSrc : !isSrc) out.push(names[i]);
+        }
+        return out;
+    }
+
+    function ccFillTags(cell, names) {
+        while (cell.firstChild) cell.removeChild(cell.firstChild);
+        var list = ccPickTags(names);
+        if (list.length) {
+            list.forEach(function (nm) { cell.appendChild(ccTagEl(nm)); });
+        } else {
+            /* ★ 该视图下没有标签时写清楚是「哪一类没有」，比光秃秃一个「无」有用 */
+            var none = document.createElement('span');
+            none.className = 'ld-cc-muted';
+            none.textContent = (ccTagMode === 'src' ? '无来源标签' : '无算法标签');
+            cell.appendChild(none);
+        }
+    }
+
+    function ccRefreshTags() {
+        var root = ccFindRoot();
+        if (!root) return;
+        var a = root.querySelector('.ld-cc-hd-tag .ld-cc-tg');
+        if (a) a.textContent = ccTagMode === 'src' ? '显示算法' : '显示来源';
+        var rows = root.querySelectorAll('.row-wrap > .row');
+        [].forEach.call(rows, function (row) {
+            var cell = row.querySelector('.ld-cc-lbs');
+            if (!cell) return;
+            var pid = ccPidOf(row);
+            var m = (pid && ccState.byPid) ? ccState.byPid[pid] : null;
+            var names = m ? (m.tags || []).map(function (id) { return ccState.dict[id]; })
+                .filter(function (v) { return !!v; }) : [];
+            ccFillTags(cell, names);
+        });
+    }
+
+    function ccContestInfo() {
+        var ctx = document.getElementById('lentille-context');
+        if (!ctx) return null;
+        var d = null;
+        try { d = JSON.parse(ctx.textContent); } catch (e) { return null; }
+        var data = d.data || {};
+        var contest = data.contest, list = data.contestProblems;
+        if (!contest || !Array.isArray(list) || !list.length) return null;
+        var now = Number(d.time) > 0 ? Number(d.time) : Date.now() / 1000;
+        var end = Number(contest.endTime);
+        if (!(end > 0 && end < now)) return null;   // 只在比赛结束后补充信息
+        return { contest: contest, list: list, key: String(contest.id) + ':' + list.length };
+    }
+
+    function ccJson(url) {
+        return fetch(url, {
+            credentials: 'same-origin',
+            headers: { 'x-lentille-request': 'content-only' }
+        }).then(function (r) { return r.ok ? r.json() : null; }).catch(function () { return null; });
+    }
+
+    // ★ 单题元数据走 /problem/<pid>（12.5KB）而不是 /problem/list?keyword=（30KB+），
+    //   每题省一半流量；列表接口只作兜底
+    function ccProblemMeta(pid) {
+        return ccJson('/problem/' + encodeURIComponent(pid)).then(function (j) {
+            var p = j && j.data && j.data.problem;
+            if (p && p.pid) return p;
+            return ccJson('/problem/list?page=1&keyword=' + encodeURIComponent(pid)).then(function (k) {
+                var res = (k && k.data && k.data.problems && k.data.problems.result) || [];
+                for (var i = 0; i < res.length; i++) { if (res[i].pid === pid) return res[i]; }
+                return null;
+            });
+        });
+    }
+
+    function ccUnescape(s) {
+        var t = document.createElement('textarea');
+        t.innerHTML = s;
+        return t.value;
+    }
+
+    function ccTagDict() {
+        /* 标签名基本不变：本地已经攒够就直接用，省掉一次 30KB 的 HTML 请求；
+           缺的名字由 ccResolveMissing 按 id 单独补，补完随 meta 一起落盘 */
+        var cached = ccDictCached();
+        if (Object.keys(cached).length >= 20) return Promise.resolve(cached);
+        return fetch('/problem/list', { credentials: 'same-origin' })
+            .then(function (r) { return r.ok ? r.text() : ''; })
+            .then(function (html) {
+                var dict = {}, re = /\/problem\/list\?tag=(\d+)[^>]*>([^<]+)</g, m;
+                while ((m = re.exec(html))) { dict[m[1]] = ccUnescape(m[2]).trim(); }
+                return dict;
+            })
+            .catch(function () { return {}; });
+    }
+
+    // 首屏 HTML 只带「第一页题目」用到的标签名，其余（如 62 / 81 / 337）
+    // 用 /problem/list?tag=<id> 单独补名：取该页里第一个 tag=<id>">名称< 的出现
+    function ccResolveMissing(dict, ids) {
+        var miss = ids.filter(function (id) { return !dict[String(id)]; });
+        if (!miss.length) return Promise.resolve(dict);
+        return Promise.all(miss.map(function (id) {
+            return fetch('/problem/list?tag=' + encodeURIComponent(id), { credentials: 'same-origin' })
+                .then(function (r) { return r.ok ? r.text() : ''; })
+                .then(function (html) {
+                    var re = new RegExp('/problem/list\\?tag=' + id + '[^>]*>([^<]+)<');
+                    var m = re.exec(html);
+                    if (m) { dict[String(id)] = ccUnescape(m[1]).trim(); }
+                    return true;
+                })
+                .catch(function () { return false; });
+        })).then(function () { return dict; });
+    }
+
+    // 站点标准样式：胶囊底色是「同色相 70% 透明度」，边框是更深一档的同色相 70%
+    function ccRgba(hex, a) {
+        var h = String(hex || '').replace('#', '');
+        if (h.length === 3) h = h[0] + h[0] + h[1] + h[1] + h[2] + h[2];
+        var r = parseInt(h.slice(0, 2), 16) || 0;
+        var g = parseInt(h.slice(2, 4), 16) || 0;
+        var b = parseInt(h.slice(4, 6), 16) || 0;
+        return 'rgba(' + r + ', ' + g + ', ' + b + ', ' + a + ')';
+    }
+    function ccDark(hex) {
+        var h = String(hex || '').replace('#', '');
+        if (h.length === 3) h = h[0] + h[0] + h[1] + h[1] + h[2] + h[2];
+        var f = 0.88;
+        var r = Math.round((parseInt(h.slice(0, 2), 16) || 0) * f);
+        var g = Math.round((parseInt(h.slice(2, 4), 16) || 0) * f);
+        var b = Math.round((parseInt(h.slice(4, 6), 16) || 0) * f);
+        return '#' + [r, g, b].map(function (v) { return ('0' + v.toString(16)).slice(-2); }).join('');
+    }
+    function ccPaintChip(el, hex) {
+        el.style.setProperty('--ld-cc-bg', ccRgba(hex, 0.7));
+        el.style.setProperty('--ld-cc-bd', ccRgba(ccDark(hex), 0.7));
+        return el;
+    }
+
+    function ccTagEl(name) {
+        var s = document.createElement('span');
+        s.className = 'ld-cc-chip';
+        s.textContent = name;
+        ccPaintChip(s, ccTagColor(name));
+        return s;
+    }
+
+    function ccNode(m, dict) {
+        var tags = document.createElement('div');
+        tags.className = 'ld-cc-cell ld-cc-lbs';
+        var diff = document.createElement('div');
+        diff.className = 'ld-cc-cell ld-cc-diff';
+        var rate = document.createElement('div');
+        rate.className = 'ld-cc-cell ld-cc-rate';
+
+        if (!m) {
+            tags.appendChild(ccTagEl('--'));
+            diff.appendChild(ccTagEl('--'));
+            rate.appendChild(ccTagEl('--'));
+            return { tags: tags, diff: diff, rate: rate };
+        }
+        var names = (m.tags || []).map(function (id) { return dict[id]; })
+            .filter(function (v) { return !!v; });
+        ccFillTags(tags, names);
+        var lv = CC_DIFF[Number(m.difficulty)] || CC_DIFF[0];
+        var chip = ccTagEl(lv.n);
+        // 用自定义属性传色：class 上的 background-color 带 !important，
+        // 内联 background-color 会被压掉，只有 --ld-cc-bg 这种变量能生效
+        ccPaintChip(chip, lv.c);
+        diff.appendChild(chip);
+        var total = Number(m.totalSubmit) || 0, acc = Number(m.totalAccepted) || 0;
+        if (total > 0) {
+            var pct = Math.round(acc / total * 1000) / 10;
+            var bar = document.createElement('div');
+            bar.className = 'ld-cc-bar';
+            var filler = document.createElement('div');
+            filler.className = 'ld-cc-bar-in';
+            filler.style.width = Math.max(2, Math.min(100, pct)) + '%';
+            bar.appendChild(filler);
+            var txt = document.createElement('span');
+            txt.className = 'ld-cc-pct';
+            txt.textContent = pct + '%';
+            rate.appendChild(bar);
+            rate.appendChild(txt);
+        } else {
+            var nd = document.createElement('span');
+            nd.className = 'ld-cc-muted';
+            nd.textContent = '--';
+            rate.appendChild(nd);
+        }
+        return { tags: tags, diff: diff, rate: rate };
+    }
+
+    function ccHeaderCell(text, cls) {
+        var d = document.createElement('div');
+        d.className = 'header-container ld-cc-cell' + (cls ? ' ' + cls : '');
+        var s = document.createElement('span');
+        s.textContent = text;
+        d.appendChild(s);
+        return d;
+    }
+
+    /* 标签列表头 = 站点同款可点切换：「显示算法 标签」/「显示来源 标签」
+       ★ 用 span 不用 a —— 表头祖先带 text-decoration，a 会被祖先画出的下划线带上，
+         子元素自己写 text-decoration:none 也去不掉 */
+    function ccTagHeaderCell() {
+        var d = document.createElement('div');
+        d.className = 'header-container ld-cc-cell ld-cc-hd-tag';
+        var a = document.createElement('span');
+        a.className = 'ld-cc-tg';
+        a.textContent = ccTagMode === 'src' ? '显示算法' : '显示来源';
+        d.appendChild(a);
+        d.appendChild(document.createTextNode(' 标签'));
+        a.addEventListener('click', function (ev) {
+            ev.preventDefault();
+            ccTagMode = ccTagMode === 'src' ? 'algo' : 'src';
+            writeValue(CC_TAGMODE_KEY, ccTagMode);
+            ccRefreshTags();
+        });
+        return d;
+    }
+
+    function ccEnsureHeader(root) {
+        var header = root.querySelector('.header-wrap > .header');
+        if (!header || header.querySelector('.ld-cc-hd-tag')) return;
+        header.appendChild(ccTagHeaderCell());
+        header.appendChild(ccHeaderCell('难度', 'ld-cc-hd-diff'));
+        header.appendChild(ccHeaderCell('通过率', 'ld-cc-hd-rate'));
+    }
+
+    function ccPidOf(row) {
+        var a = row.querySelector('.title a');
+        if (!a) return null;
+        var href = a.getAttribute('href') || '';
+        var m = href.match(/\/problem\/([A-Za-z0-9_]+)/);
+        return m ? m[1] : null;
+    }
+
+    function ccPaint(metas, dict, force) {
+        var root = ccFindRoot();
+        if (!ccIsProblemTable(root)) return false;
+        var byPid = {};
+        metas.forEach(function (m) { if (m && m.pid) byPid[m.pid] = m; });
+        ccState.byPid = byPid;
+        ccState.dict = dict || {};
+        var rows = root.querySelectorAll('.row-wrap > .row');
+        var painted = 0;
+        [].forEach.call(rows, function (row) {
+            var loads = row.querySelectorAll('.ld-cc-load');
+            if (loads.length) { [].forEach.call(loads, function (l) { if (l.parentNode) l.parentNode.removeChild(l); }); }
+            /* force：缓存里画过一次后拉到新数据，要把旧的三格换成新的 */
+            if (force) {
+                var olds = row.querySelectorAll('.ld-cc-cell');
+                [].forEach.call(olds, function (c) { if (c.parentNode) c.parentNode.removeChild(c); });
+            }
+            if (row.querySelector('.ld-cc-cell')) { painted++; return; }
+            var pid = ccPidOf(row);
+            if (!pid) return;
+            var n = ccNode(byPid[pid] || null, dict);
+            row.appendChild(n.tags);
+            row.appendChild(n.diff);
+            row.appendChild(n.rate);
+            painted++;
+        });
+        ccEnsureHeader(root);
+        return painted > 0;
+    }
+
+    /* 加载态：先占位转圈，数据到齐后由 ccPaint 换成真内容 */
+    function ccSkeleton() {
+        var root = ccFindRoot();
+        if (!ccIsProblemTable(root)) return;
+        ccEnsureHeader(root);
+        var rows = root.querySelectorAll('.row-wrap > .row');
+        [].forEach.call(rows, function (row) {
+            if (row.querySelector('.ld-cc-cell')) return;
+            if (row.querySelector('.ld-cc-spin')) return;
+            var cell = document.createElement('div');
+            /* 第一列（标签）加 ld-cc-lbs：转圈也靠左，跟表头「显示算法 标签」对齐 */
+            cell.className = 'ld-cc-cell ld-cc-load ld-cc-lbs';
+            var sp = document.createElement('span');
+            sp.className = 'ld-cc-spin';
+            cell.appendChild(sp);
+            row.appendChild(cell);
+            /* 难度 / 通过率 两列也各放一个转圈（用户要「整个转圈」） */
+            for (var k = 0; k < 2; k++) {
+                var blank = document.createElement('div');
+                blank.className = 'ld-cc-cell ld-cc-load';
+                var sp2 = document.createElement('span');
+                sp2.className = 'ld-cc-spin';
+                blank.appendChild(sp2);
+                row.appendChild(blank);
+            }
+        });
+    }
+
+    /* ★★ 结果缓存：先读本地缓存直接画出来（不等网络），同时后台拉最新，
+       比对签名有变化才重画 —— 「缓存优先展示 + 后台查询 + 有更新则更新」 */
+    var CC_META_KEY = 'luoguDarkCard.ccMeta';
+    var CC_DICT_KEY = 'luoguDarkCard.ccTagDict';
+    var CC_TTL = 30 * 24 * 3600 * 1000;   // 一道题的结果保留 30 天
+    var CC_MAX = 600;                     // 最多缓存 600 道题，超了丢最旧的
+    var CC_REFRESH = 10 * 60 * 1000;      // 同一场比赛 10 分钟内不重复请求
+
+    function ccMetaLoad() {
+        var raw = readValue(CC_META_KEY, null);
+        return raw && typeof raw === 'object' ? raw : {};
+    }
+
+    function ccMetaToEntry(m) {
+        return {
+            t: Date.now(),
+            d: m.difficulty,
+            g: (m.tags || []).slice(0),
+            s: m.totalSubmit,
+            a: m.totalAccepted
+        };
+    }
+
+    function ccMetaFromEntry(pid, e) {
+        return {
+            pid: pid,
+            difficulty: e.d,
+            tags: (e.g || []).slice(0),
+            totalSubmit: e.s,
+            totalAccepted: e.a
+        };
+    }
+
+    function ccMetaSave(metas, dict) {
+        var db = ccMetaLoad(), now = Date.now();
+        metas.forEach(function (m) { if (m && m.pid) db[m.pid] = ccMetaToEntry(m); });
+        Object.keys(db).forEach(function (k) {
+            if (!db[k] || now - (db[k].t || 0) > CC_TTL) delete db[k];
+        });
+        var keys = Object.keys(db);
+        if (keys.length > CC_MAX) {
+            keys.sort(function (a, b) { return (db[a].t || 0) - (db[b].t || 0); });
+            keys.slice(0, keys.length - CC_MAX).forEach(function (k) { delete db[k]; });
+        }
+        writeValue(CC_META_KEY, db);
+        if (dict) writeValue(CC_DICT_KEY, dict);
+    }
+
+    /* 必须全部命中才算缓存有效：缺一道题就整体重拉，免得半新半旧 */
+    function ccMetaCached(pids) {
+        if (!pids.length) return null;
+        var db = ccMetaLoad(), now = Date.now(), out = [];
+        for (var i = 0; i < pids.length; i++) {
+            var e = db[pids[i]];
+            if (!e || now - (e.t || 0) > CC_TTL) return null;
+            out.push(ccMetaFromEntry(pids[i], e));
+        }
+        return out;
+    }
+
+    function ccDictCached() {
+        var d = readValue(CC_DICT_KEY, null);
+        return d && typeof d === 'object' ? d : {};
+    }
+
+    /* 用签名判断「有没有更新」，不用深比较 */
+    function ccSigOf(metas) {
+        return metas.map(function (m) {
+            if (!m || !m.pid) return '';
+            return m.pid + ':' + m.difficulty + ':' + (m.tags || []).slice(0).sort().join('.') +
+                ':' + m.totalAccepted + '/' + m.totalSubmit;
+        }).join('|');
+    }
+
+    // ★ 只认「题目列表」那张表：必须有站点自带的 .header-container.pid（题号列）。
+    //   计分板 / 排行榜也是 .list-wrap.table，但表头是 名次/参赛者/总分 —— 不能往里加列
+    function ccIsProblemTable(root) {
+        if (!root) return false;
+        if (!root.querySelector('.header-wrap .header .header-container.pid')) return false;
+        var rows = root.querySelectorAll('.row-wrap > .row');
+        if (!rows.length) return false;
+        return !!rows[0].querySelector('.pid');
+    }
+
+    /* 不能只取全页第一个 .list-wrap.table —— 比赛页从「比赛说明」切到「题目列表」时，
+       站点旧表格可能还留在 DOM 里排在前面，ccIsProblemTable 会判失败、三列永不出现
+       （用户看到的「切换后不查询 / 全是 --」）。这里遍历所有同类表格挑真正合格的那张。 */
+    function ccFindRoot() {
+        var list = document.querySelectorAll(CC_ROOT);
+        for (var i = 0; i < list.length; i++) {
+            if (ccIsProblemTable(list[i])) return list[i];
+        }
+        return null;
+    }
+
+    function ccTick() {
+        var info = ccContestInfo();
+        if (!info) return;
+        var root = ccFindRoot();
+        if (!ccIsProblemTable(root)) return;
+        var key = info.key;
+        var pids = info.list.map(function (it) {
+            return it && it.problem ? it.problem.pid : null;
+        }).filter(Boolean);
+        if (!pids.length) return;
+
+        /* ① 缓存优先：全部命中就直接画出来，用户看不到转圈 */
+        var cached = ccMetaCached(pids);
+        if (cached) {
+            ccPaint(cached, ccDictCached());
+            ccState.key = key;
+            ccState.done = true;
+            ccState.paintedSig = ccSigOf(cached);
+        } else if (ccState.key !== key || !root.querySelector('.ld-cc-load')) {
+            ccSkeleton();
+            ccState.key = key;
+        }
+
+        /* ② 后台查最新：正在拉、或者刚拉过（CC_REFRESH 内）就不再发请求 */
+        if (ccState.busy && ccState.key === key) return;
+        if (ccState.fetchedKey === key && ccState.fetchedAt &&
+            Date.now() - ccState.fetchedAt < CC_REFRESH) return;
+
+        ccState.busy = true;
+        ccState.key = key;
+        Promise.all([Promise.all(pids.map(ccProblemMeta)), ccTagDict()]).then(function (r) {
+            var metas = r[0], dict = r[1];
+            var ids = [];
+            metas.forEach(function (m) {
+                if (!m || !m.tags) return;
+                m.tags.forEach(function (id) { if (ids.indexOf(id) < 0) ids.push(id); });
+            });
+            return ccResolveMissing(dict, ids).then(function (full) {
+                ccState.busy = false;
+                ccState.fetchedAt = Date.now();
+                ccState.fetchedKey = key;
+                ccMetaSave(metas, full);
+                var sig = ccSigOf(metas);
+                /* ③ 有更新才重画（签名不变就保持屏幕上那份，不闪） */
+                ccPaint(metas, full, sig !== ccState.paintedSig);
+                ccState.paintedSig = sig;
+                ccState.done = true;
+            });
+        }).catch(function () {
+            ccState.busy = false;
+        });
+    }
+
+    ccTick();
+    setInterval(ccTick, CC_POLL);
+
+    splitterTick();
+    setInterval(splitterTick, SPLITTER_POLL);
+
     setEnabled(enabled);
     setAlpha(alpha);
     setTcAlpha(tcAlpha);
     setSaturate(saturate);
     if (typeof setTagAlpha === 'function') { /* 初始值已由 tagAlpha 变量承载，无需重写 style */ }
     applyFooter();
+    applyRate();
+    applyWideLayout();
+    window.addEventListener('hashchange', applyWideLayout);
+    setInterval(rateTick, 800);
+
+    /* 比赛页：先摆转圈占位，数据到齐后替换（用户要求「加载时整个转圈」） */
+    ccSkeleton();
 
     var menuIds = [];
 
@@ -3238,6 +4265,8 @@
         alpha: function () { return alpha; },
         enabled: function () { return enabled; },
         theme: function () { return hostTheme; },
+        setRateMode: setRateMode,
+        rateMode: function () { return rateMode; },
         page: pageType
     };
 
@@ -3262,7 +4291,7 @@
             }
             if (_ic) _cmtErr++;
         }
-        console.info('[Luogu Dark] v5.7.2 已注入 · 开关=' + (enabled ? '开' : '关') +
+        console.info('[Luogu Dark] v5.7.1 已注入 · 开关=' + (enabled ? '开' : '关') +
             ' · 规则数=' + _rules + ' · 注释异常=' + _cmtErr +
             (_cmtErr ? ' ⚠️ CSS 注释不配平，部分规则会被解析器丢弃！' : ''));
         /* ★★ 被禁用时给出醒目告警 + 恢复方法：
