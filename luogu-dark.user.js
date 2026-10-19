@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         洛谷深色模式 · Luogu Dark
 // @namespace    https://www.luogu.com.cn/
-// @version      5.9.3
+// @version      5.9.15
 // @description  给洛谷全部页面（题目/列表/比赛/排行榜/记录/个人中心/团队/讨论/题解/提交）的卡片赋予 #383838 半透明深色效果；统一色板变量、修复残留白块（下拉浮层、弹窗、编辑器、分页、上传框）、适配 Prism 与 CodeMirror 代码配色，并支持一键开关与半透明度调节
 // @author       You
 // @match        https://www.luogu.com.cn/*
@@ -438,56 +438,75 @@
         '}',
         '/* ========== 比赛页（已结束）：题目表补充「标签 / 难度 / 通过率」列。',
         '   这些列是我自己新建的节点（.ld-cc-*），站点原表结构不动。 ========== */',
-        'html body .ld-cc-cell {',
+        'html[data-ld-cc-wide] .ld-cc-cell {',
         '    display: table-cell !important;',
         '    vertical-align: middle !important;',
-        '    padding: 8px 6px !important;',
+        '    padding: 8px 6px 8px 0 !important;',
         '    text-align: center !important;',
         '}',
-        /* 表头：字号/行高/内边距都照站点 .header-container 的实测值（14px / 21px / 7px 6px 7px 0），
-           否则会继承行内的 16px，看起来比站点大一整圈；也不折行（切成「百分比」后通过率列变窄） */
-        'html body .header-container.ld-cc-cell {',
+        /* 表头：字号/行高/内边距照站点 .header-container 的实测值（14px / 21px / 7px 6px 7px 0） */
+        'html[data-ld-cc-wide] .header-container.ld-cc-cell {',
         '    white-space: nowrap !important;',
         '    font-size: 14px !important;',
         '    line-height: 21px !important;',
         '    padding: 7px 6px 7px 0 !important;',
         '}',
-        /* 标签列整体（表头 + 单元格）都靠左：表头居中、胶囊靠左会显得「标签是右对齐」 */
-        'html body .header-container.ld-cc-cell.ld-cc-hd-tag {',
+        /* 标签列：站点的 .tag 是 160px，按用户要求扩大 70% → 272px（胶囊仍在该列内换行） */
+        'html[data-ld-cc-wide] .header-container.ld-cc-cell.ld-cc-hd-tag,',
+        'html[data-ld-cc-wide] .ld-cc-cell.ld-cc-lbs {',
+        '    width: 272px !important;',
+        '    min-width: 272px !important;',
+        '    white-space: nowrap !important;',
         '    text-align: start !important;',
         '}',
-        /* ★★ 列宽用百分比 + 上限，不用 min-width。
-           原因：min-width 是硬下限，三列一叠加就会把表格顶出卡片 —— 出现横向滚动条、
-           右边「通过率」被裁掉。百分比由表格自己分配，加起来 37%，永远不会溢出，
-           剩下的全给「题目」列 —— 于是标题在常见宽度下都能一行显示；
-           标签挤不下就在列内换行（换行优先级：标签 > 题目）。 */
-        'html body .header-container.ld-cc-cell.ld-cc-hd-tag {',
-        '    max-width: 220px !important;',
+        'html[data-ld-cc-wide] .ld-cc-cell.ld-cc-lbs {',
+        '    white-space: normal !important;',
         '}',
-        'html body .header-container.ld-cc-cell.ld-cc-hd-diff {',
-        '    max-width: 130px !important;',
-        '}',
-        'html body .header-container.ld-cc-cell.ld-cc-hd-rate {',
-        '    max-width: 96px !important;',
-        '}',
-        /* 站点的「题号 / 满分」两列会被新列挤到换行（满分 → 满/分），锁死不换行 */
-        'html body .list-wrap.table .pid,',
-        'html body .list-wrap.table .full-score {',
+        /* 难度列：照站点的 .difficulty —— 92px、不折行 */
+        'html[data-ld-cc-wide] .header-container.ld-cc-cell.ld-cc-hd-diff,',
+        'html[data-ld-cc-wide] .ld-cc-cell.ld-cc-diff {',
+        '    width: 92px !important;',
         '    white-space: nowrap !important;',
         '}',
-        'html body .list-wrap.table .pid {',
+        /* 通过率列：照站点的 .progress —— 80px、min-width 80、内边距 8px 0 */
+        'html[data-ld-cc-wide] .header-container.ld-cc-cell.ld-cc-hd-rate,',
+        'html[data-ld-cc-wide] .ld-cc-cell.ld-cc-rate {',
+        '    width: 80px !important;',
+        '    min-width: 80px !important;',
+        '    white-space: nowrap !important;',
+        '}',
+        'html[data-ld-cc-wide] .ld-cc-cell.ld-cc-rate {',
+        '    padding: 8px 0 !important;',
+        '}',
+        /* 站点的「题号 / 满分」照站点做法锁死不换行 */
+        'html[data-ld-cc-wide] .list-wrap.table .pid,',
+        'html[data-ld-cc-wide] .list-wrap.table .full-score {',
+        '    white-space: nowrap !important;',
+        '}',
+        'html[data-ld-cc-wide] .list-wrap.table .pid {',
         '    min-width: 48px !important;',
         '}',
-        'html body .list-wrap.table .full-score {',
+        'html[data-ld-cc-wide] .list-wrap.table .full-score {',
         '    min-width: 48px !important;',
         '}',
-        '/* ★ 题目名：优先不换行 —— 靠给标签列让出空间来保证；',
-        '   真挤不下时允许折行，绝不让表格溢出（出现横向滚动条） */',
-        'html body .list-wrap.table .title {',
-        '    white-space: normal !important;',
-        '    overflow-wrap: anywhere !important;',
-        '    word-break: break-word !important;',
-        '    min-width: 160px !important;',
+        '/* ★ 三列可分别关闭（面板里勾选）；全关掉就等于回到站点原样 */',
+        'html[data-ld-cc-tags="0"] .header-container.ld-cc-hd-tag,',
+        'html[data-ld-cc-tags="0"] .ld-cc-lbs {',
+        '    display: none !important;',
+        '}',
+        'html[data-ld-cc-diff="0"] .header-container.ld-cc-hd-diff,',
+        'html[data-ld-cc-diff="0"] .ld-cc-diff {',
+        '    display: none !important;',
+        '}',
+        'html[data-ld-cc-rate="0"] .header-container.ld-cc-hd-rate,',
+        'html[data-ld-cc-rate="0"] .ld-cc-rate {',
+        '    display: none !important;',
+        '}',
+        /* ★ 题目列照站点的 .title：不折行、超出用省略号 */
+        'html[data-ld-cc-wide] .list-wrap.table .title {',
+        '    white-space: nowrap !important;',
+        '    overflow: hidden !important;',
+        '    text-overflow: ellipsis !important;',
         '}',
         '/* ★ 仅比赛页 #problems：侧栏挪到「答疑/公告」右侧（保持原尺寸），题目表拿满栏宽 */',
         '/* JS 会把 .side 搬进 .main，这里用两列栅格摆位：题目表横跨两列，',
@@ -504,6 +523,8 @@
         '}',
         'html[data-ld-cc-wide] .sidebar-container.reverse.contest-show > .main > .l-card:not(.table-wrap) {',
         '    grid-column: 1 !important;',
+        '    /* 除题目表外的卡片（答疑/公告等）保持原尺寸，不跟着展开 */',
+        '    max-width: 836px !important;',
         '}',
         '/* 侧栏本身保持原来的窄宽度，不跟着拉满 */',
         'html[data-ld-cc-wide] .sidebar-container.reverse.contest-show > .main > .side {',
@@ -511,8 +532,9 @@
         '    width: 320px !important;',
         '    max-width: 100% !important;',
         '}',
-        /* ★ 题解/文章页的目录（TOC）：原来太窄，标题被截成「Per…」。
-           放宽容器并允许标题折行，不再 ellipsis 截断 */
+        /* ★ 题解/文章页的目录（TOC）：原来 188px 太窄，标题被截成「Per…」。
+           只把容器放宽到 188×1.7 = 320px，条目内部结构一律不动
+           （给 li/span 加 display:block 会把层级和行距全打乱） */
         'html body .toc-wrapper {',
         '    width: 320px !important;',
         '    max-width: 100% !important;',
@@ -526,16 +548,6 @@
         'html body .toc-wrapper .toc ul {',
         '    width: 100% !important;',
         '    max-width: none !important;',
-        '}',
-        'html body .toc-wrapper .toc li {',
-        '    white-space: normal !important;',
-        '}',
-        'html body .toc-wrapper .toc li > span {',
-        '    display: block !important;',
-        '    white-space: normal !important;',
-        '    overflow: visible !important;',
-        '    text-overflow: clip !important;',
-        '    word-break: break-word !important;',
         '}',
         /* 标签列的表头是切换链接（照站点「显示算法 标签」那套；用 span 避免下划线） */
         'html body .ld-cc-hd-tag .ld-cc-tg {',
@@ -567,19 +579,35 @@
         '    animation: ld-cc-rot 700ms linear infinite !important;',
         '}',
         '@keyframes ld-cc-rot { to { transform: rotate(360deg); } }',
+        /* 标签格：照站点 /problem/list 的 .tag —— 行高 24、内边距 8px 6px 8px 0、
+           160px 定宽内由胶囊自己换行（站点 .tags 是 flex-wrap: wrap，效果一致） */
         'html body .ld-cc-cell.ld-cc-lbs {',
         '    text-align: start !important;',
-        '    line-height: 26px !important;',
+        '    line-height: 24px !important;',
+        '    white-space: normal !important;',
+        '}',
+        /* 标签容器：flex 换行，行间距 = 列间距 = 5px */
+        'html body .ld-cc-tags {',
+        '    display: flex !important;',
+        '    flex-wrap: wrap !important;',
+        '    align-content: flex-start !important;',
+        '    row-gap: 5px !important;',
+        '    column-gap: 5px !important;',
+        '    line-height: normal !important;',
         '}',
         'html body .ld-cc-chip {',
-        '    display: inline-block !important;',
-        '    margin: 0 5px 0 0 !important;',
+        '    display: inline-flex !important;',
+        '    align-items: center !important;',
+        '    margin: 0 !important;',
         '    padding: 0 7px !important;',
+        '    height: 22px !important;',
+        '    box-sizing: border-box !important;',
         '    font-size: 14px !important;',
-        '    line-height: 21px !important;',
+        '    line-height: 1 !important;',
         '    border-radius: 2px !important;',
         '    color: #ffffff !important;',
         '    white-space: nowrap !important;',
+        '    flex: 0 0 auto !important;',
         '    background-color: var(--ld-cc-bg, rgba(255, 255, 255, 0.1)) !important;',
         '    border-top-width: 1px !important;',
         '    border-right-width: 1px !important;',
@@ -3186,6 +3214,15 @@
             '</div>',
             '<div style="border-top:1px solid ' + UI_BORDER + ';margin:0 0 12px"></div>',
             '<div style="display:flex;justify-content:space-between;margin-bottom:6px;color:#c8c8c8">',
+            '  <span>比赛页显示哪些</span><span style="color:#7a7a7a">全关即为原样</span>',
+            '</div>',
+            '<div style="display:flex;gap:6px;margin-bottom:12px">',
+            '  <label style="flex:1;display:flex;align-items:center;gap:4px;background:' + UI_BG_SOFT + ';color:' + UI_FG + ';border:1px solid ' + UI_BORDER + ';border-radius:6px;padding:4px 6px;font-family:inherit;font-size:11px;cursor:pointer"><input type="checkbox" data-ld="ccTags" style="margin:0">标签</label>',
+            '  <label style="flex:1;display:flex;align-items:center;gap:4px;background:' + UI_BG_SOFT + ';color:' + UI_FG + ';border:1px solid ' + UI_BORDER + ';border-radius:6px;padding:4px 6px;font-family:inherit;font-size:11px;cursor:pointer"><input type="checkbox" data-ld="ccDiff" style="margin:0">难度</label>',
+            '  <label style="flex:1;display:flex;align-items:center;gap:4px;background:' + UI_BG_SOFT + ';color:' + UI_FG + ';border:1px solid ' + UI_BORDER + ';border-radius:6px;padding:4px 6px;font-family:inherit;font-size:11px;cursor:pointer"><input type="checkbox" data-ld="ccRate" style="margin:0">通过率</label>',
+            '</div>',
+            '<div style="border-top:1px solid ' + UI_BORDER + ';margin:0 0 12px"></div>',
+            '<div style="display:flex;justify-content:space-between;margin-bottom:6px;color:#c8c8c8">',
             '  <span>通过率显示</span><span data-ld="rateValue" style="color:' + UI_FG + ';font-weight:600"></span>',
             '</div>',
             '<div style="display:flex;gap:6px;margin-bottom:12px">',
@@ -3254,6 +3291,36 @@
         }
     }
 
+    /* ★ 比赛页三列（标签 / 难度 / 通过率）可以单独关掉：
+       三个都关掉就完全回到站点原本的题目列表。
+       关掉只是隐藏，不重新请求，随时可以再打开。 */
+    var CC_SHOW_KEY = {
+        tags: 'luoguDarkCard.ccShowTags',
+        diff: 'luoguDarkCard.ccShowDiff',
+        rate: 'luoguDarkCard.ccShowRate'
+    };
+    var ccShow = {
+        tags: readValue(CC_SHOW_KEY.tags, true) !== false,
+        diff: readValue(CC_SHOW_KEY.diff, true) !== false,
+        rate: readValue(CC_SHOW_KEY.rate, true) !== false
+    };
+
+    function applyCcCols() {
+        var root = document.documentElement;
+        if (!root) return;
+        ['tags', 'diff', 'rate'].forEach(function (k) {
+            root.setAttribute('data-ld-cc-' + k, ccShow[k] ? '1' : '0');
+        });
+    }
+
+    function setCcShow(k, v) {
+        if (!(k in ccShow)) return;
+        ccShow[k] = !!v;
+        writeValue(CC_SHOW_KEY[k], ccShow[k]);
+        applyCcCols();
+        if (updatePanel) updatePanel();
+    }
+
     function applyRate() {
         var root = document.documentElement;
         if (root) root.setAttribute('data-ld-rate', rateMode);
@@ -3301,6 +3368,11 @@
         if (valueEl) valueEl.textContent = Math.round(alpha * 100) + '%';
         var cb = panel.querySelector('[data-ld="hideFooter"]');
         if (cb && cb.checked !== hideFooter) cb.checked = hideFooter;
+        /* 比赛页三列开关 */
+        [['ccTags', 'tags'], ['ccDiff', 'diff'], ['ccRate', 'rate']].forEach(function (pair) {
+            var box = panel.querySelector('[data-ld="' + pair[0] + '"]');
+            if (box && box.checked !== ccShow[pair[1]]) box.checked = ccShow[pair[1]];
+        });
         // ★ 测试点透明度：滑块位置 + 百分比显示
         var tcRange = panel.querySelector('[data-ld="tcRange"]');
         var tcValueEl = panel.querySelector('[data-ld="tcValue"]');
@@ -3416,6 +3488,11 @@
         if (p85) p85.addEventListener('click', function () { setAlpha(0.85); });
         var hf = panel.querySelector('[data-ld="hideFooter"]');
         if (hf) hf.addEventListener('change', function () { setHideFooter(hf.checked); });
+        /* 比赛页三列开关 */
+        [['ccTags', 'tags'], ['ccDiff', 'diff'], ['ccRate', 'rate']].forEach(function (pair) {
+            var box = panel.querySelector('[data-ld="' + pair[0] + '"]');
+            if (box) box.addEventListener('change', function () { setCcShow(pair[1], box.checked); });
+        });
         // ★ 测试点透明度滑块 + 三个预设档
         var tcRange = panel.querySelector('[data-ld="tcRange"]');
         if (tcRange) tcRange.addEventListener('input', function () { setTcAlpha(parseFloat(tcRange.value)); });
@@ -3772,15 +3849,20 @@
     function ccFillTags(cell, names) {
         while (cell.firstChild) cell.removeChild(cell.firstChild);
         var list = ccPickTags(names);
+        /* ★ 胶囊统一放进一个 flex 容器：换行时行与行之间有确定的间距，
+           不依赖 line-height 去撑（之前行高 24 配 22px 胶囊，换行后两行会贴在一起） */
+        var box = document.createElement('div');
+        box.className = 'ld-cc-tags';
         if (list.length) {
-            list.forEach(function (nm) { cell.appendChild(ccTagEl(nm)); });
+            list.forEach(function (nm) { box.appendChild(ccTagEl(nm)); });
         } else {
             /* ★ 该视图下没有标签时写清楚是「哪一类没有」，比光秃秃一个「无」有用 */
             var none = document.createElement('span');
             none.className = 'ld-cc-muted';
             none.textContent = (ccTagMode === 'src' ? '无来源标签' : '无算法标签');
-            cell.appendChild(none);
+            box.appendChild(none);
         }
+        cell.appendChild(box);
     }
 
     function ccRefreshTags() {
@@ -4028,7 +4110,16 @@
     }
 
     /* 加载态：先占位转圈，数据到齐后由 ccPaint 换成真内容 */
+    /* ★ 只允许在 contest/<id> 页面动这张表。
+       普通 /problem/list 的表格结构与比赛页一致（都有 .header-container.pid），
+       光靠 ccIsProblemTable 会把列错误地加过去 —— 用户要求「不要乱匹配」。 */
+    function ccAllowedHere() {
+        if (!/^\/contest\/\d+/.test(location.pathname)) return false;
+        return !!ccContestInfo();
+    }
+
     function ccSkeleton() {
+        if (!ccAllowedHere()) return;
         var root = ccFindRoot();
         if (!ccIsProblemTable(root)) return;
         ccEnsureHeader(root);
@@ -4189,14 +4280,20 @@
             });
             return ccResolveMissing(dict, ids).then(function (full) {
                 ccState.busy = false;
-                ccState.fetchedAt = Date.now();
-                ccState.fetchedKey = key;
-                ccMetaSave(metas, full);
+                /* ★ 只有「每道题都拿到了」才算这次查询成功。若有题目请求失败（null），
+                   就不能记下 fetchedAt/fetchedKey —— 否则 10 分钟去重会把「重试」
+                   也一起挡掉，页面就永远停在 `--` 占位（用户报过这个 bug）。 */
+                var okAll = metas.length > 0 && metas.every(function (m) { return !!m; });
+                if (okAll) {
+                    ccState.fetchedAt = Date.now();
+                    ccState.fetchedKey = key;
+                    ccMetaSave(metas, full);
+                }
                 var sig = ccSigOf(metas);
                 /* ③ 有更新才重画（签名不变就保持屏幕上那份，不闪） */
                 ccPaint(metas, full, sig !== ccState.paintedSig);
                 ccState.paintedSig = sig;
-                ccState.done = true;
+                ccState.done = okAll;
             });
         }).catch(function () {
             ccState.busy = false;
@@ -4216,9 +4313,13 @@
     if (typeof setTagAlpha === 'function') { /* 初始值已由 tagAlpha 变量承载，无需重写 style */ }
     applyFooter();
     applyRate();
+    applyCcCols();
     applyWideLayout();
     window.addEventListener('hashchange', applyWideLayout);
-    setInterval(rateTick, 800);
+    /* ★ 定时再算一次：直接打开 #problems（不是从别的子页切过来）时，
+       脚本初始化那一刻 Vue 还没挂载出 .side/.main，搬栏会落空；
+       hashchange 也不会触发。跟着 800ms 轮询补一次即可幂等生效。 */
+    setInterval(function () { rateTick(); applyWideLayout(); }, 800);
 
     /* 比赛页：先摆转圈占位，数据到齐后替换（用户要求「加载时整个转圈」） */
     ccSkeleton();
@@ -4267,6 +4368,8 @@
         theme: function () { return hostTheme; },
         setRateMode: setRateMode,
         rateMode: function () { return rateMode; },
+        setCcShow: setCcShow,
+        ccShow: function () { return { tags: ccShow.tags, diff: ccShow.diff, rate: ccShow.rate }; },
         page: pageType
     };
 
